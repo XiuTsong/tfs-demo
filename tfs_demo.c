@@ -94,7 +94,7 @@ static int echo(const char args[][MAX_LEN], __maybe_unused char *read_buf)
 
 static int quit(__maybe_unused const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
-	return 1;
+	return -1;
 }
 
 const struct easy_fs_op fs_ops[] = {

@@ -65,7 +65,7 @@ static easy_dir_t *easy_file_to_easy_dir(easy_file_t *File)
 	if (File->type != EASY_TYPE_DIR)
 		return NULL;
 
-	return (easy_dir_t *)get_block(File->block_ids[0]);
+	return (easy_dir_t *)get_block_data(File->block_ids[0]);
 }
 
 static easy_file_t *easy_dir_to_easy_file(easy_dir_t *Dir)
@@ -112,10 +112,10 @@ easy_status easy_init_file_pool(void)
 	for (i = 0; i < block_num; ++i) {
 		alloc_block(0);
 	}
-	global_file_pool = (easy_file_t *)get_block(0);
+	global_file_pool = (easy_file_t *)get_block_data(0);
 
 	alloc_block(&block_id);
-	global_file_pool_bitmap = (bool *)get_block(block_id);
+	global_file_pool_bitmap = (bool *)get_block_data(block_id);
 
 	memset(global_file_pool, 0, sizeof(easy_file_t) * MAX_FILE_NUM);
 	memset(global_file_pool_bitmap, 0, MAX_FILE_NUM);
@@ -362,6 +362,7 @@ easy_file_t *create_file_internal(const char *file_name, EASY_FILE_TYPE type)
 	uint32_t new_block_id;
 
 	new_file = file_pool_get_new_file(file_name, type);
+	// printf("create_file: %s id: %d\n", file_name, new_file->id);
 	if (!new_file) {
 		return NULL;
 	}

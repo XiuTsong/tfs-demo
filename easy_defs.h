@@ -14,6 +14,7 @@ typedef unsigned int easy_status;
 #define EASY_BLOCK_FREE_ERROR 3
 #define EASY_BLOCK_WRITE_ERROR 4
 #define EASY_BLOCK_READ_ERROR 5
+#define EASY_BLOCK_STATE_ERROR 6
 
 #define EASY_FILE_INIT_FAILED 10
 #define EASY_FILE_NOT_SUPPORT 20
