@@ -52,8 +52,9 @@ easy_status alloc_block(uint32_t *block_id)
 
 	for (i = 0; i < MAX_BLOCK; ++i) {
 		if (!global_block_system.bitmap[i]) {
-			*block_id = i;
 			global_block_system.bitmap[i] = 1;
+			if (block_id)
+				*block_id = i;
 			return EASY_SUCCESS;
 		}
 	}

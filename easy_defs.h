@@ -26,4 +26,6 @@ typedef unsigned int easy_status;
 #define EASY_DIR_NOT_FOUND_ERROR 300
 #define EASY_DIR_CREATE_FAILED 400
 
+#define __align(n) __attribute__((aligned(n)))
+
 #endif

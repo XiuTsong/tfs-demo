@@ -1,4 +1,9 @@
-## ADS TFS demo
+## Advanced Distributed System(ADS) TFS demo
+
+### Paper
+
+https://ipads.se.sjtu.edu.cn/courses/ads/paper/ads-tfs.pdf
+
 
 ### Setup
 

@@ -6,8 +6,12 @@
 
 easy_dir_t *root_dir;
 easy_dir_t *current_dir;
-easy_file_t global_file_pool[MAX_FILE_NUM];
-bool global_file_pool_bitmap[MAX_FILE_NUM];
+// easy_file_t global_file_pool[MAX_FILE_NUM];
+// bool global_file_pool_bitmap[MAX_FILE_NUM];
+#define FILE_PER_BLOCK (BLOCK_SIZE / sizeof(easy_file_t))
+
+easy_file_t *global_file_pool;
+bool *global_file_pool_bitmap;
 
 easy_file_t *create_file_internal(const char *FileName, EASY_FILE_TYPE Type);
 
@@ -101,8 +105,20 @@ static easy_file_t *file_pool_get_new_file(const char *file_name, EASY_FILE_TYPE
 easy_status easy_init_file_pool(void)
 {
 	uint32_t i;
+	uint32_t block_num;
+	uint32_t block_id;
 
-	memset(global_file_pool_bitmap, 0, sizeof(global_file_pool_bitmap));
+	block_num = MAX_FILE_NUM / FILE_PER_BLOCK;
+	for (i = 0; i < block_num; ++i) {
+		alloc_block(0);
+	}
+	global_file_pool = (easy_file_t *)get_block(0);
+
+	alloc_block(&block_id);
+	global_file_pool_bitmap = (bool *)get_block(block_id);
+
+	memset(global_file_pool, 0, sizeof(easy_file_t) * MAX_FILE_NUM);
+	memset(global_file_pool_bitmap, 0, MAX_FILE_NUM);
 
 	for (i = 0; i < MAX_FILE_NUM; ++i) {
 		global_file_pool[i].id = i;

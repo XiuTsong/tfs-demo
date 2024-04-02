@@ -1,7 +1,6 @@
 #ifndef __FILE_H__
 #define __FILE_H__
 
-#include "easy_block.h"
 #include "easy_defs.h"
 
 typedef unsigned int EASY_FILE_TYPE;
@@ -14,20 +13,24 @@ typedef unsigned int EASY_FILE_TYPE;
 #define MAX_FILE_BLOCKS 10
 #define MAX_DIR_NUM 10
 
-typedef struct {
+struct easy_file {
 	char name[MAX_FILE_NAME_LEN];
 	uint32_t block_ids[MAX_FILE_BLOCKS];
 	uint32_t block_num;
 	uint32_t file_size;  // Byte
 	EASY_FILE_TYPE type; // EASY_FILE can be file or directory
 	uint32_t id;
-} easy_file_t;
+} __align(8); // sizeof(struct easy_file) = 80
 
-typedef struct {
+typedef struct easy_file easy_file_t;
+
+struct easy_dir {
 	uint32_t file_ids[MAX_FILE_NUM];
 	easy_file_t *self_file; // Point to EASY_FILE struct that contains itself
 	uint32_t file_num;
-} easy_dir_t; // sizeof(EASY_FILE_DIR) = 8Byte * 101 < 1024Byte(1 Block)
+} __align(8); // sizeof(struct easy_dir) = 56
+
+typedef struct easy_dir easy_dir_t;
 
 easy_status easy_create_dir(const char *dir_name);
 
