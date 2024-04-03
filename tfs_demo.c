@@ -48,7 +48,8 @@ static int read_file(const char args[][MAX_LEN], char *read_buf)
 {
 	int ret;
 	ret = easy_read_file(args[1], MAX_LEN, read_buf);
-	printf("%s\n", read_buf);
+	if (strlen(read_buf))
+		printf("%s\n", read_buf);
 	return ret;
 }
 
@@ -82,7 +83,8 @@ static int cat(const char args[][MAX_LEN], char *read_buf)
 {
 	int ret;
 	ret = easy_cat(args[1], read_buf);
-	printf("%s\n", read_buf);
+	if (strlen(read_buf))
+		printf("%s\n", read_buf);
 	return ret;
 }
 
@@ -174,7 +176,7 @@ int tfs_main_work()
 {
 	int ret = 0;
 
-	while (!ret) {
+	while (ret >= 0) {
 		int argc;
 
 		printf("tfs-demo > ");
@@ -185,16 +187,11 @@ int tfs_main_work()
 		global_str[strcspn(global_str, "\n")] = '\0';
 
 		argc = split_string_to_args(global_str, global_args);
-
 		if (argc == 0) {
 			continue;
 		}
 
 		ret = forward_fs_ops(global_args, global_read_buf);
-
-		if (ret) {
-			break;
-		}
 	}
 
 	ret = end_tfs(ret);

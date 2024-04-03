@@ -4,12 +4,10 @@
 #include <stdio.h>
 #include <string.h>
 
-easy_dir_t *root_dir;
-easy_dir_t *current_dir;
-// easy_file_t global_file_pool[MAX_FILE_NUM];
-// bool global_file_pool_bitmap[MAX_FILE_NUM];
 #define FILE_PER_BLOCK (BLOCK_SIZE / sizeof(easy_file_t))
 
+easy_dir_t *root_dir;
+easy_dir_t *current_dir;
 easy_file_t *global_file_pool;
 bool *global_file_pool_bitmap;
 
@@ -374,10 +372,10 @@ static easy_file_t *create_file_internal(const char *file_name, file_type type)
 	} else {
 		status = alloc_block(&new_block_id);
 	}
-
 	if (status != EASY_SUCCESS) {
 		return NULL;
 	}
+
 	new_file->block_num = 1;
 	new_file->block_ids[new_file->block_num - 1] = new_block_id;
 
@@ -434,8 +432,8 @@ easy_status easy_remove_file(const char *file_name)
 	}
 
 	type = delete_file->type;
-	// Free block memory
-	for_each_block_id_in_file(block_id, delete_file) {
+	for_each_block_id_in_file(block_id, delete_file)
+	{
 		if (unlikely(type == EASY_TYPE_FILE_TRANS || type == EASY_TYPE_DIR_TRANS)) {
 			status = free_block_trans(delete_file->block_ids[block_id]);
 		} else {
@@ -445,13 +443,12 @@ easy_status easy_remove_file(const char *file_name)
 			return status;
 		}
 	}
-	// Update dir status
+	/* Update directory status */
 	status = easy_dir_remove_file(cur_dir, delete_file->id);
 	if (status != EASY_SUCCESS) {
 		return status;
 	}
 
-	// Clear file metadata
 	clean_file_metadata(delete_file);
 
 	return EASY_SUCCESS;
@@ -465,7 +462,7 @@ easy_status easy_create_trans_file(const char *file_name)
 	cur_dir = get_cur_dir();
 
 	if (easy_dir_check_file_exist(cur_dir, file_name)) {
-		/** File already exist, do nothing. */
+		/* File already exist, do nothing. */
 		return EASY_SUCCESS;
 	}
 
@@ -499,14 +496,14 @@ static easy_status easy_clean_trans_file(easy_file_t *clean_file)
 		return -EASY_FILE_NOT_FOUND_ERROR;
 	}
 
-	// Free block memory
-	for_each_block_id_in_file(block_id, clean_file) {
+	for_each_block_id_in_file(block_id, clean_file)
+	{
 		status = clean_block(block_id);
 		if (status != EASY_SUCCESS) {
 			return status;
 		}
 	}
-	// Update dir status
+
 	status = easy_dir_remove_file(cur_dir, clean_file->id);
 	if (status != EASY_SUCCESS) {
 		return status;
@@ -526,7 +523,8 @@ static bool easy_check_file_overwritten(easy_file_t *file)
 	uint32_t block_id;
 	easy_block_t *block;
 
-	for_each_block_id_in_file(block_id, file) {
+	for_each_block_id_in_file(block_id, file)
+	{
 		block = get_block(file->block_ids[block_id]);
 		if (block->state == BLOCK_ALLOC_OVER || block->state == BLOCK_FREE_OVER) {
 			return true;
@@ -587,12 +585,12 @@ easy_status easy_read_file(const char *file_name, uint32_t nbyte, void *buf)
 
 	file = easy_dir_get_file(cur_dir, file_name);
 	if (!file) {
-		return -EASY_FILE_NOT_FOUND_ERROR;
+		return EASY_FILE_NOT_FOUND_ERROR;
 	}
 
 	/* Currently we assume one file contains only one blocks! */
 	if (nbyte > BLOCK_SIZE) {
-		return -EASY_FILE_NOT_SUPPORT;
+		return EASY_FILE_NOT_SUPPORT;
 	}
 
 	read_block(file->block_ids[0], nbyte, buf);
@@ -611,12 +609,13 @@ easy_status easy_write_file(const char *file_name, uint32_t nbyte, const void *b
 
 	file = easy_dir_get_file(cur_dir, file_name);
 	if (!file) {
-		return -EASY_FILE_NOT_FOUND_ERROR;
+		return EASY_FILE_NOT_FOUND_ERROR;
 	}
 
 	/* Currently we assume one file contains only one blocks! */
 	if (nbyte > BLOCK_SIZE) {
-		return -EASY_FILE_NOT_SUPPORT;
+		printf("File size too large\n");
+		return EASY_FILE_SIZE_EXCEED;
 	}
 
 	/* Currently we only support write-append.
@@ -682,11 +681,8 @@ easy_status easy_cd(const char *dir_name)
 
 	dir = get_easy_dir_by_name(dir_name, cur_dir);
 	if (!dir) {
-		// printf("%s: get dir failed\n", __func__);
-		printf("directory \"%s\" not found", dir_name);
-		// return -EASY_DIR_NOT_FOUND_ERROR;
-		/* FIXME: return the error code will lead to failed now */
-		return 0;
+		printf("directory \"%s\" not found\n", dir_name);
+		return EASY_DIR_NOT_FOUND_ERROR;
 	}
 
 	set_cur_dir(dir);
@@ -703,7 +699,8 @@ easy_status easy_cat(const char *file_name, void *buf)
 
 	file = easy_dir_get_file(cur_dir, file_name);
 	if (!file) {
-		return -EASY_FILE_NOT_FOUND_ERROR;
+		printf("file \"%s\" not found\n", file_name);
+		return EASY_FILE_NOT_FOUND_ERROR;
 	}
 
 	read_block(file->block_ids[0], file->file_size, buf);
