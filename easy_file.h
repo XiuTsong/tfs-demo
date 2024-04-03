@@ -3,14 +3,22 @@
 
 #include "easy_defs.h"
 
-typedef unsigned int EASY_FILE_TYPE;
+typedef enum easy_file_type {
+	EASY_TYPE_FILE = 0,
+	EASY_TYPE_DIR,
+	EASY_TYPE_FILE_TRANS,
+	EASY_TYPE_DIR_TRANS,
+} file_type;
 
-#define EASY_TYPE_FILE 0
-#define EASY_TYPE_DIR 0
+typedef enum easy_file_state {
+	EASY_FILE_OPEN = 0,
+	EASY_FILE_CLOSE,
+	EASY_FILE_OVER,
+} file_state;
 
 #define MAX_FILE_NUM 100
-#define MAX_FILE_NAME_LEN 20
-#define MAX_FILE_BLOCKS 10
+#define MAX_FILE_NAME_LEN 32
+#define MAX_FILE_BLOCKS 8
 #define MAX_DIR_NUM 10
 
 struct easy_file {
@@ -18,9 +26,10 @@ struct easy_file {
 	uint32_t block_ids[MAX_FILE_BLOCKS];
 	uint32_t block_num;
 	uint32_t file_size;  // Byte
-	EASY_FILE_TYPE type; // EASY_FILE can be file or directory
 	uint32_t id;
-} __align(8); // sizeof(struct easy_file) = 80
+	file_type type; // EASY_FILE can be file or directory
+	file_state state;
+} __align(8);
 
 typedef struct easy_file easy_file_t;
 
@@ -37,6 +46,14 @@ easy_status easy_create_dir(const char *dir_name);
 easy_status easy_create_file(const char *file_name);
 
 easy_status easy_remove_file(const char *file_name);
+
+easy_status easy_create_trans_file(const char *file_name);
+
+easy_status easy_remove_trans_file(const char *file_name);
+
+easy_status easy_open_file(const char *file_name);
+
+easy_status easy_close_file(const char *file_name);
 
 easy_status easy_read_file(const char *file_name, uint32_t nbyte, void *Buf);
 

@@ -71,7 +71,6 @@ easy_block_t *get_block(const uint32_t block_id)
 
 void *get_block_data(const uint32_t block_id)
 {
-	/* FIXME: hard code here */
 	return (void *)(get_block(block_id)->block_data);
 }
 
@@ -133,8 +132,8 @@ easy_status alloc_block_trans(uint32_t *block_id)
 			if (status != EASY_SUCCESS) {
 				return status;
 			}
-			/* FIXME: Do not set bitmap here */
-			global_block_system->bitmap[i] = 1;
+			/* Do not set bitmap here */
+			// global_block_system->bitmap[i] = 1;
 			return EASY_SUCCESS;
 		}
 	}

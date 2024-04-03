@@ -13,13 +13,13 @@ easy_dir_t *current_dir;
 easy_file_t *global_file_pool;
 bool *global_file_pool_bitmap;
 
-easy_file_t *create_file_internal(const char *FileName, EASY_FILE_TYPE Type);
+static easy_file_t *create_file_internal(const char *FileName, file_type Type);
 
-easy_status easy_dir_add_file(easy_dir_t *dir, uint32_t file_id);
+static easy_status easy_dir_add_file(easy_dir_t *dir, uint32_t file_id);
 
-easy_file_t *easy_dir_get_file(easy_dir_t *dir, const char *file_name);
+static easy_file_t *easy_dir_get_file(easy_dir_t *dir, const char *file_name);
 
-easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id);
+static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id);
 
 /************************************************************
  *        Tool functions
@@ -79,7 +79,7 @@ static easy_file_t *easy_dir_to_easy_file(easy_dir_t *Dir)
 
 #define file_pool_get_file_by_id(file_id) (&global_file_pool[(file_id)])
 
-static easy_file_t *file_pool_get_new_file(const char *file_name, EASY_FILE_TYPE type)
+static easy_file_t *file_pool_get_new_file(const char *file_name, file_type type)
 {
 	uint32_t i;
 	easy_file_t *new_file;
@@ -307,7 +307,7 @@ easy_status easy_dir_list_files(const char *dir_name, void *buf)
 	return EASY_SUCCESS;
 }
 
-easy_file_t *easy_dir_get_file(easy_dir_t *dir, const char *file_name)
+static easy_file_t *easy_dir_get_file(easy_dir_t *dir, const char *file_name)
 {
 	uint32_t i;
 	easy_file_t *file;
@@ -323,7 +323,7 @@ easy_file_t *easy_dir_get_file(easy_dir_t *dir, const char *file_name)
 	return NULL;
 }
 
-easy_status easy_dir_add_file(easy_dir_t *dir, uint32_t file_id)
+static easy_status easy_dir_add_file(easy_dir_t *dir, uint32_t file_id)
 {
 	uint32_t i;
 
@@ -337,7 +337,7 @@ easy_status easy_dir_add_file(easy_dir_t *dir, uint32_t file_id)
 	return -EASY_DIR_TOO_MANY_FILE_ERROR;
 }
 
-easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id)
+static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id)
 {
 	uint32_t i;
 
@@ -355,7 +355,7 @@ easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id)
  *        EasyFile Related
  ************************************************************/
 
-easy_file_t *create_file_internal(const char *file_name, EASY_FILE_TYPE type)
+static easy_file_t *create_file_internal(const char *file_name, file_type type)
 {
 	easy_status status;
 	easy_file_t *new_file = NULL;
@@ -435,6 +435,79 @@ easy_status easy_remove_file(const char *file_name)
 	memset(delete_file->name, 0, MAX_FILE_NAME_LEN);
 	delete_file->file_size = 0;
 	delete_file->block_num = 0;
+
+	return EASY_SUCCESS;
+}
+
+easy_status easy_create_trans_file(const char *file_name)
+{
+	/* TODO: */
+	printf("%s\n", file_name);
+	return EASY_SUCCESS;
+}
+
+easy_status easy_remove_trans_file(const char *file_name)
+{
+	/* TODO: */
+	printf("%s\n", file_name);
+	return EASY_SUCCESS;
+}
+
+/*
+ * Check whether the @file is overwritten
+ * return 1 - overwritten
+ */
+static bool easy_check_file_overwritten(easy_file_t *file)
+{
+	uint32_t i;
+	easy_block_t *block;
+
+	for (i = 0; i < file->block_num; ++i) {
+		block = get_block(file->block_ids[i]);
+		if (block->state == BLOCK_ALLOC_OVER || block->state == BLOCK_FREE_OVER) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/*
+ * Open file before read and write.
+ * Check overwritten blocks here.
+ */
+easy_status easy_open_file(const char *file_name)
+{
+	easy_file_t *file;
+
+	file = easy_dir_get_file(get_cur_dir(), file_name);
+	if (file->state == EASY_FILE_OVER) {
+		printf("file %s is overwritten\n", file_name);
+		return EASY_FILE_OVERWRITTEN_ERROR;
+	}
+
+	if (easy_check_file_overwritten(file)) {
+		file->state = EASY_FILE_OVER;
+		printf("file %s is overwritten\n", file_name);
+		return EASY_FILE_OVERWRITTEN_ERROR;
+	}
+
+	file->state = EASY_FILE_OPEN;
+
+	return EASY_SUCCESS;
+}
+
+/*
+ * Close file after operations finished.
+ * A block of a transparent file cannot be overwritten
+ * until the file is closed.
+ */
+easy_status easy_close_file(const char *file_name)
+{
+	easy_file_t *file;
+
+	file = easy_dir_get_file(get_cur_dir(), file_name);
+	file->state = EASY_FILE_CLOSE;
 
 	return EASY_SUCCESS;
 }
