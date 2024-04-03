@@ -29,5 +29,7 @@ typedef unsigned int easy_status;
 #define EASY_DIR_CREATE_FAILED 400
 
 #define __align(n) __attribute__((aligned(n)))
+#define likely(x)	__builtin_expect(!!(x), 1)
+#define unlikely(x)	__builtin_expect(!!(x), 0)
 
 #endif

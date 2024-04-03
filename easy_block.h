@@ -13,8 +13,7 @@ typedef enum easy_block_operation {
 	WRITE_TRANS,
 	DELETE_NORMAL,
 	DELETE_TRANS,
-	CLEAN_NORMAL,
-	CLEAN_TRANS,
+	CLEAN,
 	MAX_BLOCK_OP_NUM
 } block_op;
 
@@ -56,6 +55,10 @@ easy_status alloc_block(uint32_t *block_id);
 easy_status alloc_block_trans(uint32_t *block_id);
 
 easy_status free_block(uint32_t block_id);
+
+easy_status free_block_trans(uint32_t block_id);
+
+easy_status clean_block(uint32_t block_id);
 
 easy_block_t *get_block(const uint32_t block_id);
 

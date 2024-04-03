@@ -36,10 +36,10 @@ easy_status init_block_state_machine(void)
 	block_state_machine[BLOCK_ALLOC][DELETE_NORMAL] = BLOCK_FREE;
 	block_state_machine[BLOCK_TRANS][DELETE_TRANS] = BLOCK_FREE;
 	block_state_machine[BLOCK_TRANS][WRITE_NORMAL] = BLOCK_ALLOC_OVER;
-	block_state_machine[BLOCK_FREE_OVER][CLEAN_TRANS] = BLOCK_FREE;
+	block_state_machine[BLOCK_FREE_OVER][CLEAN] = BLOCK_FREE;
 	block_state_machine[BLOCK_FREE_OVER][WRITE_NORMAL] = BLOCK_ALLOC_OVER;
 	block_state_machine[BLOCK_ALLOC_OVER][DELETE_NORMAL] = BLOCK_FREE_OVER;
-	block_state_machine[BLOCK_ALLOC_OVER][CLEAN_NORMAL] = BLOCK_ALLOC;
+	block_state_machine[BLOCK_ALLOC_OVER][CLEAN] = BLOCK_ALLOC;
 	return EASY_SUCCESS;
 }
 
@@ -143,7 +143,27 @@ easy_status alloc_block_trans(uint32_t *block_id)
 
 easy_status free_block(uint32_t block_id)
 {
+	easy_status status = EASY_SUCCESS;
 	global_block_system->bitmap[block_id] = 0;
+	status = block_state_transition(block_id, DELETE_NORMAL);
 
-	return EASY_SUCCESS;
+	return status;
+}
+
+easy_status free_block_trans(uint32_t block_id)
+{
+	easy_status status = EASY_SUCCESS;
+	/* Do not clear bitmap here */
+	status = block_state_transition(block_id, DELETE_TRANS);
+
+	return status;
+}
+
+easy_status clean_block(uint32_t block_id)
+{
+	easy_status status = EASY_SUCCESS;
+	/* Do not clear bitmap here */
+	status = block_state_transition(block_id, CLEAN);
+
+	return status;
 }

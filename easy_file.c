@@ -257,7 +257,7 @@ easy_status easy_create_root_dir(void)
 {
 	root_dir = create_dir("/", 1, NULL);
 	if (!root_dir) {
-		return -EASY_DIR_CREATE_ROOT_DIR_FAILED;
+		return EASY_DIR_CREATE_ROOT_DIR_FAILED;
 	}
 	current_dir = root_dir;
 
@@ -271,7 +271,7 @@ easy_status easy_create_dir(const char *dir_name)
 	new_dir = create_dir(dir_name, 0, cur_dir);
 
 	if (!new_dir) {
-		return -EASY_DIR_CREATE_FAILED;
+		return EASY_DIR_CREATE_FAILED;
 	}
 	return EASY_SUCCESS;
 }
@@ -334,7 +334,7 @@ static easy_status easy_dir_add_file(easy_dir_t *dir, uint32_t file_id)
 			return EASY_SUCCESS;
 		}
 	}
-	return -EASY_DIR_TOO_MANY_FILE_ERROR;
+	return EASY_DIR_TOO_MANY_FILE_ERROR;
 }
 
 static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id)
@@ -348,12 +348,14 @@ static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id)
 			return EASY_SUCCESS;
 		}
 	}
-	return -EASY_DIR_NOT_FOUND_ERROR;
+	return EASY_DIR_NOT_FOUND_ERROR;
 }
 
 /************************************************************
  *        EasyFile Related
  ************************************************************/
+
+#define for_each_block_id_in_file(block_id, file) for ((block_id) = 0; (block_id) < (file)->block_num; ++(block_id))
 
 static easy_file_t *create_file_internal(const char *file_name, file_type type)
 {
@@ -367,7 +369,12 @@ static easy_file_t *create_file_internal(const char *file_name, file_type type)
 		return NULL;
 	}
 
-	status = alloc_block(&new_block_id);
+	if (unlikely(type == EASY_TYPE_FILE_TRANS || type == EASY_TYPE_DIR_TRANS)) {
+		status = alloc_block_trans(&new_block_id);
+	} else {
+		status = alloc_block(&new_block_id);
+	}
+
 	if (status != EASY_SUCCESS) {
 		return NULL;
 	}
@@ -399,12 +406,20 @@ easy_status easy_create_file(const char *file_name)
 	return EASY_SUCCESS;
 }
 
+static void clean_file_metadata(easy_file_t *file)
+{
+	memset(file->name, 0, MAX_FILE_NAME_LEN);
+	file->file_size = 0;
+	file->block_num = 0;
+}
+
 easy_status easy_remove_file(const char *file_name)
 {
-	uint32_t i;
+	uint32_t block_id;
 	easy_status status;
 	easy_file_t *delete_file = NULL;
 	easy_dir_t *cur_dir;
+	file_type type;
 
 	cur_dir = get_cur_dir();
 
@@ -418,9 +433,14 @@ easy_status easy_remove_file(const char *file_name)
 		return -EASY_FILE_NOT_FOUND_ERROR;
 	}
 
+	type = delete_file->type;
 	// Free block memory
-	for (i = 0; i < delete_file->block_num; ++i) {
-		status = free_block(delete_file->block_ids[i]);
+	for_each_block_id_in_file(block_id, delete_file) {
+		if (unlikely(type == EASY_TYPE_FILE_TRANS || type == EASY_TYPE_DIR_TRANS)) {
+			status = free_block_trans(delete_file->block_ids[block_id]);
+		} else {
+			status = free_block(delete_file->block_ids[block_id]);
+		}
 		if (status != EASY_SUCCESS) {
 			return status;
 		}
@@ -431,25 +451,69 @@ easy_status easy_remove_file(const char *file_name)
 		return status;
 	}
 
-	// Clear file data
-	memset(delete_file->name, 0, MAX_FILE_NAME_LEN);
-	delete_file->file_size = 0;
-	delete_file->block_num = 0;
+	// Clear file metadata
+	clean_file_metadata(delete_file);
 
 	return EASY_SUCCESS;
 }
 
 easy_status easy_create_trans_file(const char *file_name)
 {
-	/* TODO: */
-	printf("%s\n", file_name);
+	easy_file_t *new_file = NULL;
+	easy_dir_t *cur_dir;
+
+	cur_dir = get_cur_dir();
+
+	if (easy_dir_check_file_exist(cur_dir, file_name)) {
+		/** File already exist, do nothing. */
+		return EASY_SUCCESS;
+	}
+
+	new_file = create_file_internal(file_name, EASY_TYPE_FILE_TRANS);
+	if (!new_file) {
+		return -EASY_FILE_CREATE_FAILED;
+	}
+
+	easy_dir_add_file(cur_dir, new_file->id);
+
 	return EASY_SUCCESS;
 }
 
 easy_status easy_remove_trans_file(const char *file_name)
 {
-	/* TODO: */
-	printf("%s\n", file_name);
+	return easy_remove_file(file_name);
+}
+
+/* Ordinary file cannot be overwritten,
+ * only try to clean transparet file here.
+ */
+static easy_status easy_clean_trans_file(easy_file_t *clean_file)
+{
+	uint32_t block_id;
+	easy_status status;
+	easy_dir_t *cur_dir;
+
+	cur_dir = get_cur_dir();
+
+	if (!clean_file) {
+		return -EASY_FILE_NOT_FOUND_ERROR;
+	}
+
+	// Free block memory
+	for_each_block_id_in_file(block_id, clean_file) {
+		status = clean_block(block_id);
+		if (status != EASY_SUCCESS) {
+			return status;
+		}
+	}
+	// Update dir status
+	status = easy_dir_remove_file(cur_dir, clean_file->id);
+	if (status != EASY_SUCCESS) {
+		return status;
+	}
+
+	clean_file_metadata(clean_file);
+
 	return EASY_SUCCESS;
 }
 
@@ -459,11 +523,11 @@ easy_status easy_remove_trans_file(const char *file_name)
  */
 static bool easy_check_file_overwritten(easy_file_t *file)
 {
-	uint32_t i;
+	uint32_t block_id;
 	easy_block_t *block;
 
-	for (i = 0; i < file->block_num; ++i) {
-		block = get_block(file->block_ids[i]);
+	for_each_block_id_in_file(block_id, file) {
+		block = get_block(file->block_ids[block_id]);
 		if (block->state == BLOCK_ALLOC_OVER || block->state == BLOCK_FREE_OVER) {
 			return true;
 		}
@@ -489,6 +553,8 @@ easy_status easy_open_file(const char *file_name)
 	if (easy_check_file_overwritten(file)) {
 		file->state = EASY_FILE_OVER;
 		printf("file %s is overwritten\n", file_name);
+		/* TODO: delete file, clean file blocks here */
+		easy_clean_trans_file(file);
 		return EASY_FILE_OVERWRITTEN_ERROR;
 	}
 
