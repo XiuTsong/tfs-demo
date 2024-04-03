@@ -51,23 +51,17 @@ easy_status easy_create_trans_file(const char *file_name);
 
 easy_status easy_remove_trans_file(const char *file_name);
 
-easy_status easy_open_file(const char *file_name);
-
-easy_status easy_close_file(const char *file_name);
-
-easy_status easy_read_file(const char *file_name, uint32_t nbyte, void *Buf);
-
-easy_status easy_write_file(const char *file_name, uint32_t nbyte, const void *Buf);
-
-easy_status easy_dir_list_files(const char *dir_name, void *buf);
+easy_status easy_dir_list_files(const char *dir_name, void *read_buf);
 
 easy_status init_file_layer(void);
 
-easy_status easy_pwd(void *buf);
+easy_status easy_pwd(void *read_buf);
 
 easy_status easy_cd(const char *dir_name);
 
-easy_status easy_cat(const char *file_name, void *buf);
+easy_status easy_cat(const char *file_name, void *read_buf);
 
 easy_status easy_ls(void *buf);
+
+easy_status easy_echo(const char *file_name, const void *write_buf);
 #endif

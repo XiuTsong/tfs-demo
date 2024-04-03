@@ -538,11 +538,15 @@ static bool easy_check_file_overwritten(easy_file_t *file)
  * Open file before read and write.
  * Check overwritten blocks here.
  */
-easy_status easy_open_file(const char *file_name)
+easy_status easy_open_file(const char *file_name, easy_file_t **open_file)
 {
 	easy_file_t *file;
 
 	file = easy_dir_get_file(get_cur_dir(), file_name);
+	if (!file) {
+		printf("file %s not found\n", file_name);
+		return EASY_FILE_NOT_FOUND_ERROR;
+	}
 	if (file->state == EASY_FILE_OVER) {
 		printf("file %s is overwritten\n", file_name);
 		return EASY_FILE_OVERWRITTEN_ERROR;
@@ -557,6 +561,7 @@ easy_status easy_open_file(const char *file_name)
 	}
 
 	file->state = EASY_FILE_OPEN;
+	*open_file = file;
 
 	return EASY_SUCCESS;
 }
@@ -566,28 +571,15 @@ easy_status easy_open_file(const char *file_name)
  * A block of a transparent file cannot be overwritten
  * until the file is closed.
  */
-easy_status easy_close_file(const char *file_name)
+easy_status easy_close_file(easy_file_t *file)
 {
-	easy_file_t *file;
-
-	file = easy_dir_get_file(get_cur_dir(), file_name);
 	file->state = EASY_FILE_CLOSE;
 
 	return EASY_SUCCESS;
 }
 
-easy_status easy_read_file(const char *file_name, uint32_t nbyte, void *buf)
+static easy_status easy_read_file(easy_file_t *file, uint32_t nbyte, void *buf)
 {
-	easy_dir_t *cur_dir;
-	easy_file_t *file;
-
-	cur_dir = get_cur_dir();
-
-	file = easy_dir_get_file(cur_dir, file_name);
-	if (!file) {
-		return EASY_FILE_NOT_FOUND_ERROR;
-	}
-
 	/* Currently we assume one file contains only one blocks! */
 	if (nbyte > BLOCK_SIZE) {
 		return EASY_FILE_NOT_SUPPORT;
@@ -598,19 +590,10 @@ easy_status easy_read_file(const char *file_name, uint32_t nbyte, void *buf)
 	return EASY_SUCCESS;
 }
 
-easy_status easy_write_file(const char *file_name, uint32_t nbyte, const void *buf)
+static easy_status easy_write_file(easy_file_t *file, uint32_t nbyte, const void *buf)
 {
-	easy_dir_t *cur_dir;
-	easy_file_t *file;
 	easy_status status;
 	uint32_t write_pos;
-
-	cur_dir = get_cur_dir();
-
-	file = easy_dir_get_file(cur_dir, file_name);
-	if (!file) {
-		return EASY_FILE_NOT_FOUND_ERROR;
-	}
 
 	/* Currently we assume one file contains only one blocks! */
 	if (nbyte > BLOCK_SIZE) {
@@ -692,18 +675,23 @@ easy_status easy_cd(const char *dir_name)
 
 easy_status easy_cat(const char *file_name, void *buf)
 {
-	easy_dir_t *cur_dir;
+	easy_status status;
 	easy_file_t *file;
 
-	cur_dir = get_cur_dir();
-
-	file = easy_dir_get_file(cur_dir, file_name);
-	if (!file) {
-		printf("file \"%s\" not found\n", file_name);
-		return EASY_FILE_NOT_FOUND_ERROR;
+	status = easy_open_file(file_name, &file);
+	if (status != EASY_SUCCESS) {
+		return status;
 	}
 
-	read_block(file->block_ids[0], file->file_size, buf);
+	status = easy_read_file(file, file->file_size, buf);
+	if (status != EASY_SUCCESS) {
+		return status;
+	}
+
+	status = easy_close_file(file);
+	if (status != EASY_SUCCESS) {
+		return status;
+	}
 
 	return EASY_SUCCESS;
 }
@@ -731,4 +719,27 @@ easy_status easy_ls(void *buf)
 	}
 
 	return EASY_SUCCESS;
+}
+
+easy_status easy_echo(const char *file_name, const void *write_buf)
+{
+	easy_status status;
+	easy_file_t *file;
+
+	status = easy_open_file(file_name, &file);
+	if (status != EASY_SUCCESS) {
+		return status;
+	}
+
+	status = easy_write_file(file, strlen(write_buf), write_buf);
+	if (status != EASY_SUCCESS) {
+		return status;
+	}
+
+	status = easy_close_file(file);
+	if (status != EASY_SUCCESS) {
+		return status;
+	}
+
+	return status;
 }

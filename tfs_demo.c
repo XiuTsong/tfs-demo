@@ -38,21 +38,6 @@ static int remove_file(const char args[][MAX_LEN], __maybe_unused char *read_buf
 	return easy_remove_file(args[1]);
 }
 
-/* cmd: write "abc" a.txt */
-static int write_file(const char args[][MAX_LEN], __maybe_unused char *read_buf)
-{
-	return easy_write_file(args[2], strlen(args[1]), args[1]);
-}
-
-static int read_file(const char args[][MAX_LEN], char *read_buf)
-{
-	int ret;
-	ret = easy_read_file(args[1], MAX_LEN, read_buf);
-	if (strlen(read_buf))
-		printf("%s\n", read_buf);
-	return ret;
-}
-
 static int create_dir(const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
 	return easy_create_dir(args[1]);
@@ -91,7 +76,7 @@ static int cat(const char args[][MAX_LEN], char *read_buf)
 /* e.g echo "123" a.txt */
 static int echo(const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
-	return easy_write_file(args[2], strlen(args[1]), args[1]);
+	return easy_echo(args[2], args[1]);
 }
 
 static int quit(__maybe_unused const char args[][MAX_LEN], __maybe_unused char *read_buf)
@@ -106,8 +91,6 @@ const struct easy_fs_op fs_ops[] = {
 	{"touch", create_file},
 	{"remove", remove_file},
 	{"rm", remove_file},
-	{"write", write_file},
-	{"read", read_file},
 	{"mkdir", create_dir},
 	{"ls", ls},
 	{"cd", cd},
