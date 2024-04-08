@@ -18,7 +18,7 @@ typedef enum easy_file_state {
 
 #define MAX_FILE_NUM 100
 #define MAX_FILE_NAME_LEN 32
-#define MAX_FILE_BLOCKS 8
+#define MAX_FILE_BLOCKS 16
 #define MAX_DIR_NUM 10
 
 struct easy_file {

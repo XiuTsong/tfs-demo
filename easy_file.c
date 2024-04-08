@@ -365,10 +365,8 @@ static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id)
  *        EasyFile Related
  ************************************************************/
 
-#define for_each_block_id_in_file(block_id, file) \
-	for (uint32_t __id = 0, block_id; \
-		__id < (file)->block_num && (block_id = file->block_ids[__id]); \
-		++__id)
+#define for_each_block_id_in_file(block_id, file)                                                                      \
+	for (uint32_t __id = 0, block_id; __id < (file)->block_num && (block_id = file->block_ids[__id]); ++__id)
 
 #define is_file_trans(file) ((file)->type == EASY_TYPE_FILE_TRANS || (file)->type == EASY_TYPE_DIR_TRANS)
 
@@ -394,13 +392,14 @@ easy_status easy_create_file(const char *file_name)
 	cur_dir = get_cur_dir();
 
 	if (easy_dir_check_file_exist(cur_dir, file_name)) {
-		/** File already exist, do nothing. */
+		printf("file \"%s\" already exists\n", file_name);
 		return EASY_SUCCESS;
 	}
 
 	new_file = create_file_internal(file_name, EASY_TYPE_FILE);
 	if (!new_file) {
-		return -EASY_FILE_CREATE_FAILED;
+		printf("create file \"%s\" failed\n", file_name);
+		return EASY_FILE_CREATE_FAILED;
 	}
 
 	easy_dir_add_file(cur_dir, new_file->id);
@@ -424,13 +423,14 @@ easy_status easy_remove_file(const char *file_name)
 	cur_dir = get_cur_dir();
 
 	if (!easy_dir_check_file_exist(cur_dir, file_name)) {
-		/** File does not exist, do nothing. */
+		printf("file \"%s\" not exists\n", file_name);
 		return EASY_SUCCESS;
 	}
 
 	delete_file = easy_dir_get_file(cur_dir, file_name);
 	if (!delete_file) {
-		return -EASY_FILE_NOT_FOUND_ERROR;
+		printf("find parent directory failed\n");
+		return EASY_FILE_NOT_FOUND_ERROR;
 	}
 
 	for_each_block_id_in_file(block_id, delete_file)
@@ -469,7 +469,8 @@ easy_status easy_create_trans_file(const char *file_name)
 
 	new_file = create_file_internal(file_name, EASY_TYPE_FILE_TRANS);
 	if (!new_file) {
-		return -EASY_FILE_CREATE_FAILED;
+		printf("create file \"%s\" failed\n", file_name);
+		return EASY_FILE_CREATE_FAILED;
 	}
 
 	easy_dir_add_file(cur_dir, new_file->id);
@@ -518,7 +519,7 @@ static easy_status easy_clean_trans_file(easy_file_t *clean_file)
  * Check whether the @file is overwritten
  * return 1 - overwritten
  */
-static bool easy_check_file_overwritten(easy_file_t *file)
+static bool is_file_overwritten(easy_file_t *file)
 {
 	easy_block_t *block;
 
@@ -551,7 +552,7 @@ easy_status easy_open_file(const char *file_name, easy_file_t **open_file)
 		return EASY_FILE_OVERWRITTEN_ERROR;
 	}
 
-	if (easy_check_file_overwritten(file)) {
+	if (is_file_trans(file) && is_file_overwritten(file)) {
 		file->state = EASY_FILE_OVER;
 		printf("file %s is overwritten\n", file_name);
 		/* TODO: delete file, clean file blocks here */
@@ -626,16 +627,19 @@ static easy_status easy_write_file(easy_file_t *file, uint32_t nbyte, const void
 #else
 /**
  * For demo use, each character use one block.
+ * Only support write append now
  */
 static easy_status easy_demo_write_file(easy_file_t *file, uint32_t nbyte, const void *buf)
 {
 	easy_status status;
-	uint32_t block_num;
+	uint32_t new_block_num;
 	uint32_t block_id;
+	uint32_t write_pos;
 	uint32_t i;
 
-	block_num = strlen((char *)buf);
-	for (i = file->block_num; i < block_num; ++i) {
+	new_block_num = strlen((char *)buf);
+	write_pos = file->file_size;
+	for (i = 0; i < new_block_num; ++i) {
 		if (unlikely(is_file_trans(file))) {
 			status = alloc_block_trans(&block_id);
 		} else {
@@ -644,12 +648,12 @@ static easy_status easy_demo_write_file(easy_file_t *file, uint32_t nbyte, const
 		if (status != EASY_SUCCESS) {
 			return EASY_BLOCK_ALLOC_ERROR;
 		}
-		file->block_ids[i] = block_id;
+		file->block_ids[i + write_pos] = block_id;
 		file->block_num++;
 	}
 
-	for (i = 0; i < block_num; ++i) {
-		status = write_block(file->block_ids[i], 1, 0, buf + i);
+	for (i = 0; i < new_block_num; ++i) {
+		status = write_block(file->block_ids[i + write_pos], 1, 0, buf + i);
 		if (status != EASY_SUCCESS) {
 			return status;
 		}
@@ -830,7 +834,7 @@ easy_status easy_open(const char *file_name)
 }
 
 /*
- * Raw file write without open and close.
+ * Raw file write without open() and close().
  * Be aware that we don't check overwritten blocks here.
  */
 easy_status easy_write(const char *file_name, const void *write_buf)
@@ -857,7 +861,7 @@ easy_status easy_write(const char *file_name, const void *write_buf)
 }
 
 /*
- * Raw file write without open and close.
+ * Raw file read without open() and close().
  * Be aware that we don't check overwritten blocks here.
  */
 easy_status easy_read(const char *file_name, void *read_buf)
