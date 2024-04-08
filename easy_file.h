@@ -68,4 +68,8 @@ easy_status easy_echo(const char *file_name, const void *write_buf);
 easy_status easy_ls_blocks(void *buf);
 
 easy_status easy_open(const char *file_name);
+
+easy_status easy_write(const char *file_name, const void *write_buf);
+
+easy_status easy_read(const char *file_name, void *read_buf);
 #endif

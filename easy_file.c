@@ -828,3 +828,57 @@ easy_status easy_open(const char *file_name)
 
 	return EASY_SUCCESS;
 }
+
+/*
+ * Raw file write without open and close.
+ * Be aware that we don't check overwritten blocks here.
+ */
+easy_status easy_write(const char *file_name, const void *write_buf)
+{
+	easy_status status;
+	easy_file_t *file;
+
+	file = easy_dir_get_file(get_cur_dir(), file_name);
+	if (!file) {
+		printf("file %s not found\n", file_name);
+		return EASY_FILE_NOT_FOUND_ERROR;
+	}
+
+#ifndef __DEMO_USE
+	status = easy_write_file(file, strlen(write_buf), write_buf);
+#else
+	status = easy_demo_write_file(file, strlen(write_buf), write_buf);
+#endif
+	if (status != EASY_SUCCESS) {
+		return status;
+	}
+
+	return status;
+}
+
+/*
+ * Raw file write without open and close.
+ * Be aware that we don't check overwritten blocks here.
+ */
+easy_status easy_read(const char *file_name, void *read_buf)
+{
+	easy_status status;
+	easy_file_t *file;
+
+	file = easy_dir_get_file(get_cur_dir(), file_name);
+	if (!file) {
+		printf("file %s not found\n", file_name);
+		return EASY_FILE_NOT_FOUND_ERROR;
+	}
+
+#ifndef __DEMO_USE
+	status = easy_read_file(file, file->file_size, read_buf);
+#else
+	status = easy_demo_read_file(file, file->file_size, read_buf);
+#endif
+	if (status != EASY_SUCCESS) {
+		return status;
+	}
+
+	return EASY_SUCCESS;
+}

@@ -76,6 +76,15 @@ static int cat(const char args[][MAX_LEN], char *read_buf)
 	return ret;
 }
 
+static int read(const char args[][MAX_LEN], char *read_buf)
+{
+	int ret;
+	ret = easy_read(args[1], read_buf);
+	if (strlen(read_buf))
+		printf("%s\n", read_buf);
+	return ret;
+}
+
 static int open(const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
 	int ret;
@@ -87,6 +96,11 @@ static int open(const char args[][MAX_LEN], __maybe_unused char *read_buf)
 static int echo(const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
 	return easy_echo(args[2], args[1]);
+}
+
+static int write(const char args[][MAX_LEN], __maybe_unused char *read_buf)
+{
+	return easy_write(args[2], args[1]);
 }
 
 static int quit(__maybe_unused const char args[][MAX_LEN], __maybe_unused char *read_buf)
@@ -114,8 +128,8 @@ const struct easy_fs_op fs_ops[] = {
 	{"echo", echo},
 	{"lsblk", ls_blk},
 	{"open", open},
-	{"write", echo},
-	{"read", cat},
+	{"write", write},
+	{"read", read},
 };
 
 static int start_tfs()
