@@ -1,5 +1,6 @@
 #include "easy_block.h"
 #include "easy_defs.h"
+#include "print_block.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -197,17 +198,18 @@ void set_start_block()
 #endif
 
 /* For demo use, only list status of the file data block */
-easy_status list_blocks(void *buf)
+easy_status list_blocks(__maybe_unused void *buf)
 {
 #ifdef __DEMO_USE
-	int block_id;
-	easy_block_t *block;
+	// int block_id;
+	// easy_block_t *block;
 
-	for (block_id = start_block_id; block_id < MAX_BLOCK && block_id < start_block_id + 16; ++block_id) {
-		block = get_block(block_id);
-		printf("[%d]", block->state);
-	}
-	printf("\n");
+	// for (block_id = start_block_id; block_id < MAX_BLOCK && block_id < start_block_id + 16; ++block_id) {
+	// 	block = get_block(block_id);
+	// 	printf("[%d]", block->state);
+	// }
+	// printf("\n");
+	print_blocks(start_block_id, 16);
 
 	return EASY_SUCCESS;
 #else
