@@ -24,38 +24,16 @@ static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id);
  ************************************************************/
 static uint32_t get_file_name_len(const char *file_name)
 {
-	uint32_t i;
-	const char *ch = file_name;
-
-	for (i = 0; *ch != 0; ++i, ++ch)
-		;
-
-	return i;
+	return strlen(file_name);
 }
 
-/**
+/*
  * return 0 - not equal
  *        1 - equal
  */
 static bool compare_file_name(const char *Name1, const char *Name2)
 {
-	uint32_t len1;
-	uint32_t len2;
-	const char *ch1;
-	const char *ch2;
-	uint32_t i;
-
-	len1 = get_file_name_len(Name1);
-	len2 = get_file_name_len(Name2);
-	if (len1 != len2)
-		return 0;
-
-	for (i = 0, ch1 = Name1, ch2 = Name2; i < len1; ++i, ++ch1, ++ch2) {
-		if (*ch1 != *ch2)
-			return 0;
-	}
-
-	return 1;
+	return !strcmp(Name1, Name2);
 }
 
 static easy_dir_t *easy_file_to_easy_dir(easy_file_t *File)
