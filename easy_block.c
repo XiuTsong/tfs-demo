@@ -6,6 +6,18 @@
 easy_block_system_t *global_block_system;
 int block_state_machine[MAX_BLOCK_STATE_NUM][MAX_BLOCK_OP_NUM];
 
+static inline bool is_block_writeable(const uint32_t block_id, bool is_trans)
+{
+	easy_block_t *block = get_block(block_id);
+	bool flag = false;
+	if (!is_trans) {
+		/* Normal write can overwrite transparent or free-and-overwritten block */
+		flag |= block->state == BLOCK_TRANS;
+		flag |= block->state == BLOCK_FREE_OVER;
+	}
+	return flag;
+}
+
 easy_status init_block_system(void *memory_pool, unsigned int nbyte)
 {
 	uint32_t i;
@@ -102,13 +114,13 @@ easy_status alloc_block(uint32_t *block_id)
 	uint32_t i;
 
 	for (i = 0; i < MAX_BLOCK; ++i) {
-		if (global_block_system->bitmap[i])
+		if (global_block_system->bitmap[i] && !is_block_writeable(i, false)) {
 			continue;
+		}
 
 		if (block_id)
 			*block_id = i;
 		status = block_state_transition(i, WRITE_NORMAL);
-		// printf("alloc_block: %d\n", i);
 		if (status != EASY_SUCCESS) {
 			return status;
 		}
@@ -125,17 +137,17 @@ easy_status alloc_block_trans(uint32_t *block_id)
 	uint32_t i;
 
 	for (i = 0; i < MAX_BLOCK; ++i) {
-		if (!global_block_system->bitmap[i]) {
-			if (block_id)
-				*block_id = i;
-			status = block_state_transition(i, WRITE_TRANS);
-			if (status != EASY_SUCCESS) {
-				return status;
-			}
-			/* Do not set bitmap here */
-			// global_block_system->bitmap[i] = 1;
-			return EASY_SUCCESS;
+		if (global_block_system->bitmap[i])
+			continue;
+
+		if (block_id)
+			*block_id = i;
+		status = block_state_transition(i, WRITE_TRANS);
+		if (status != EASY_SUCCESS) {
+			return status;
 		}
+		global_block_system->bitmap[i] = 1;
+		return EASY_SUCCESS;
 	}
 
 	return EASY_BLOCK_ALLOC_ERROR;
@@ -153,7 +165,7 @@ easy_status free_block(uint32_t block_id)
 easy_status free_block_trans(uint32_t block_id)
 {
 	easy_status status = EASY_SUCCESS;
-	/* Do not clear bitmap here */
+	global_block_system->bitmap[block_id] = 0;
 	status = block_state_transition(block_id, DELETE_TRANS);
 
 	return status;
@@ -187,7 +199,6 @@ void set_start_block()
 /* For demo use, only list status of the file data block */
 easy_status list_blocks(void *buf)
 {
-
 #ifdef __DEMO_USE
 	int block_id;
 	easy_block_t *block;

@@ -10,6 +10,4 @@ struct easy_fs_op {
     int (*op)(const char args[][MAX_LEN], char *read_buf);
 };
 
-#define __maybe_unused		__attribute__((unused))
-
 #endif

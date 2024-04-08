@@ -32,6 +32,7 @@ typedef unsigned int easy_status;
 #define __align(n) __attribute__((aligned(n)))
 #define likely(x)	__builtin_expect(!!(x), 1)
 #define unlikely(x)	__builtin_expect(!!(x), 0)
+#define __maybe_unused		__attribute__((unused))
 
 #define __DEMO_USE
 

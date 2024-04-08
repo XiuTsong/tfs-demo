@@ -365,7 +365,12 @@ static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id)
  *        EasyFile Related
  ************************************************************/
 
-#define for_each_block_id_in_file(block_id, file) for ((block_id) = 0; (block_id) < (file)->block_num; ++(block_id))
+#define for_each_block_id_in_file(block_id, file) \
+	for (uint32_t __id = 0, block_id; \
+		__id < (file)->block_num && (block_id = file->block_ids[__id]); \
+		++__id)
+
+#define is_file_trans(file) ((file)->type == EASY_TYPE_FILE_TRANS || (file)->type == EASY_TYPE_DIR_TRANS)
 
 static easy_file_t *create_file_internal(const char *file_name, file_type type)
 {
@@ -412,11 +417,9 @@ static void clean_file_metadata(easy_file_t *file)
 
 easy_status easy_remove_file(const char *file_name)
 {
-	uint32_t block_id;
 	easy_status status;
 	easy_file_t *delete_file = NULL;
 	easy_dir_t *cur_dir;
-	file_type type;
 
 	cur_dir = get_cur_dir();
 
@@ -430,13 +433,12 @@ easy_status easy_remove_file(const char *file_name)
 		return -EASY_FILE_NOT_FOUND_ERROR;
 	}
 
-	type = delete_file->type;
 	for_each_block_id_in_file(block_id, delete_file)
 	{
-		if (unlikely(type == EASY_TYPE_FILE_TRANS || type == EASY_TYPE_DIR_TRANS)) {
-			status = free_block_trans(delete_file->block_ids[block_id]);
+		if (unlikely(is_file_trans(delete_file))) {
+			status = free_block_trans(block_id);
 		} else {
-			status = free_block(delete_file->block_ids[block_id]);
+			status = free_block(block_id);
 		}
 		if (status != EASY_SUCCESS) {
 			return status;
@@ -485,7 +487,6 @@ easy_status easy_remove_trans_file(const char *file_name)
  */
 static easy_status easy_clean_trans_file(easy_file_t *clean_file)
 {
-	uint32_t block_id;
 	easy_status status;
 	easy_dir_t *cur_dir;
 
@@ -519,12 +520,11 @@ static easy_status easy_clean_trans_file(easy_file_t *clean_file)
  */
 static bool easy_check_file_overwritten(easy_file_t *file)
 {
-	uint32_t block_id;
 	easy_block_t *block;
 
 	for_each_block_id_in_file(block_id, file)
 	{
-		block = get_block(file->block_ids[block_id]);
+		block = get_block(block_id);
 		if (block->state == BLOCK_ALLOC_OVER || block->state == BLOCK_FREE_OVER) {
 			return true;
 		}
@@ -636,7 +636,11 @@ static easy_status easy_demo_write_file(easy_file_t *file, uint32_t nbyte, const
 
 	block_num = strlen((char *)buf);
 	for (i = file->block_num; i < block_num; ++i) {
-		status = alloc_block(&block_id);
+		if (unlikely(is_file_trans(file))) {
+			status = alloc_block_trans(&block_id);
+		} else {
+			status = alloc_block(&block_id);
+		}
 		if (status != EASY_SUCCESS) {
 			return EASY_BLOCK_ALLOC_ERROR;
 		}

@@ -30,6 +30,9 @@ int init_file_system(void)
 }
 static int create_file(const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
+	if (!strcmp(args[1], "-t")) {
+		return easy_create_trans_file(args[2]);
+	}
 	return easy_create_file(args[1]);
 }
 
@@ -110,7 +113,9 @@ const struct easy_fs_op fs_ops[] = {
 	{"cat", cat},
 	{"echo", echo},
 	{"lsblk", ls_blk},
-	{"open", open}
+	{"open", open},
+	{"write", echo},
+	{"read", cat},
 };
 
 static int start_tfs()
