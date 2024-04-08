@@ -33,4 +33,6 @@ typedef unsigned int easy_status;
 #define likely(x)	__builtin_expect(!!(x), 1)
 #define unlikely(x)	__builtin_expect(!!(x), 0)
 
+#define __DEMO_USE
+
 #endif

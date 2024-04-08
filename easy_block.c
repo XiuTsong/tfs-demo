@@ -1,6 +1,6 @@
 #include "easy_block.h"
 #include "easy_defs.h"
-// #include <stdio.h>
+#include <stdio.h>
 #include <string.h>
 
 easy_block_system_t *global_block_system;
@@ -166,4 +166,40 @@ easy_status clean_block(uint32_t block_id)
 	status = block_state_transition(block_id, CLEAN);
 
 	return status;
+}
+
+#ifdef __DEMO_USE
+extern int start_block_id;
+#endif
+
+#ifdef __DEMO_USE
+void set_start_block()
+{
+	for (int i = MAX_BLOCK - 1; i >= 0; i--) {
+		if (global_block_system->bitmap[i]) {
+			start_block_id = i + 1;
+			break;
+		}
+	}
+}
+#endif
+
+/* For demo use, only list status of the file data block */
+easy_status list_blocks(void *buf)
+{
+
+#ifdef __DEMO_USE
+	int block_id;
+	easy_block_t *block;
+
+	for (block_id = start_block_id; block_id < MAX_BLOCK && block_id < start_block_id + 16; ++block_id) {
+		block = get_block(block_id);
+		printf("[%d]", block->state);
+	}
+	printf("\n");
+
+	return EASY_SUCCESS;
+#else
+	return EASY_SUCCESS;
+#endif
 }

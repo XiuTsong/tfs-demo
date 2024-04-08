@@ -61,6 +61,8 @@ easy_status clean_block(uint32_t block_id);
 
 easy_block_t *get_block(const uint32_t block_id);
 
+easy_status list_blocks(void *buf);
+
 void *get_block_data(const uint32_t block_id);
 
 #endif

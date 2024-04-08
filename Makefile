@@ -1,5 +1,8 @@
 CC = gcc
 CFLAGS = -g -Wall -Wextra
+# for demo use
+# CFLAGS += -D __DEMO_USE
+
 TARGET = main
 SRCS := $(wildcard *.c)
 OBJS := $(SRCS:.c=.o)

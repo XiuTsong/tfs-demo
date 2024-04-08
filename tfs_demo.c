@@ -73,6 +73,13 @@ static int cat(const char args[][MAX_LEN], char *read_buf)
 	return ret;
 }
 
+static int open(const char args[][MAX_LEN], __maybe_unused char *read_buf)
+{
+	int ret;
+	ret = easy_open(args[1]);
+	return ret;
+}
+
 /* e.g echo "123" a.txt */
 static int echo(const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
@@ -82,6 +89,11 @@ static int echo(const char args[][MAX_LEN], __maybe_unused char *read_buf)
 static int quit(__maybe_unused const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
 	return -1;
+}
+
+static int ls_blk(__maybe_unused const char args[][MAX_LEN], __maybe_unused char *read_buf)
+{
+	return easy_ls_blocks(read_buf);
 }
 
 const struct easy_fs_op fs_ops[] = {
@@ -97,6 +109,8 @@ const struct easy_fs_op fs_ops[] = {
 	{"pwd", pwd},
 	{"cat", cat},
 	{"echo", echo},
+	{"lsblk", ls_blk},
+	{"open", open}
 };
 
 static int start_tfs()
@@ -195,163 +209,3 @@ int main()
 
 	return ret;
 }
-
-// void file_test_1(void)
-// {
-// 	easy_status Status;
-// 	char buf[10];
-
-// 	memset(buf, 0, 10);
-
-// 	Status = easy_create_file("abc.txt");
-// 	if (Status != EASY_SUCCESS) {
-// 		printf("Create File failed\n");
-// 		return;
-// 	}
-
-// 	Status = easy_write_file("abc.txt", 5, "abcde");
-// 	if (Status != EASY_SUCCESS) {
-// 		printf("Write File failed\n");
-// 		return;
-// 	}
-
-// 	Status = easy_write_file("abc.txt", 3, "def");
-// 	if (Status != EASY_SUCCESS) {
-// 		printf("Write File failed\n");
-// 		return;
-// 	}
-
-// 	Status = easy_read_file("abc.txt", 8, buf);
-// 	if (Status != EASY_SUCCESS) {
-// 		printf("Write File failed\n");
-// 		return;
-// 	}
-
-// 	printf("buf: %s\n", buf);
-
-// 	Status = easy_remove_file("abc.txt");
-// 	if (Status != EASY_SUCCESS) {
-// 		printf("Remove File failed\n");
-// 		return;
-// 	}
-
-// 	memset(buf, 0, 10);
-
-// 	Status = easy_create_file("def.txt");
-// 	if (Status != EASY_SUCCESS) {
-// 		printf("Create File failed\n");
-// 		return;
-// 	}
-
-// 	Status = easy_write_file("def.txt", 3, "def");
-// 	if (Status != EASY_SUCCESS) {
-// 		printf("Write File failed\n");
-// 		return;
-// 	}
-
-// 	// Status = EasyReadFile("def.txt", 3, buf);
-// 	// if (Status != EASY_SUCCESS) {
-// 	//   printf("Write File failed\n");
-// 	//   return;
-// 	// }
-// 	memset(buf, 0, 10);
-
-// 	Status = easy_cat("def.txt", buf);
-// 	if (Status != EASY_SUCCESS) {
-// 		printf("Write File failed\n");
-// 		return;
-// 	}
-
-// 	printf("buf: %s\n", buf);
-// }
-
-// void file_test_2()
-// {
-// 	easy_status Status;
-// 	char buf1[10];
-// 	char buf2[10];
-// 	char buf3[10];
-
-// 	memset(buf1, 0, 10);
-// 	memset(buf2, 0, 10);
-// 	memset(buf3, 0, 10);
-
-// 	Status = easy_create_file("a.txt");
-// 	Status |= easy_create_file("b.txt");
-// 	Status |= easy_create_file("c.txt");
-// 	if (Status != EASY_SUCCESS) {
-// 		printf("Create File failed\n");
-// 		return;
-// 	}
-
-// 	Status = easy_write_file("a.txt", 3, "xxx");
-// 	Status |= easy_write_file("b.txt", 3, "!!!");
-// 	Status |= easy_write_file("c.txt", 3, "@@@");
-// 	if (Status != EASY_SUCCESS) {
-// 		printf("Write File failed\n");
-// 		return;
-// 	}
-
-// 	Status = easy_read_file("a.txt", 3, buf1);
-// 	Status |= easy_read_file("b.txt", 3, buf2);
-// 	Status |= easy_read_file("c.txt", 3, buf3);
-// 	if (Status != EASY_SUCCESS) {
-// 		printf("Write File failed\n");
-// 		return;
-// 	}
-
-// 	printf("buf1: %s\n", buf1);
-// 	printf("buf2: %s\n", buf2);
-// 	printf("buf3: %s\n", buf3);
-// }
-
-// void dir_test_1()
-// {
-// 	easy_status Status;
-// 	char buf[100];
-// 	memset(buf, 0, 100);
-
-// 	Status = easy_create_file("a.txt");
-// 	Status |= easy_create_file("b.txt");
-// 	Status |= easy_create_file("c.txt");
-// 	if (Status != EASY_SUCCESS) {
-// 		printf("Create File failed\n");
-// 		return;
-// 	}
-
-// 	// EasyDirListFiles("/", buf);
-// 	// EasyLs(buf);
-// 	// printf("files: %s\n", buf);
-// 	// memset(buf, 0, 100);
-// 	// EasyPwd(buf);
-// 	// printf("CurDir: %s\n", buf);
-// 	// memset(buf, 0, 100);
-
-// 	easy_create_dir("dir1");
-
-// 	// EasyDirListFiles("dir1", buf);
-// 	// EasyLs(buf);
-// 	// printf("files: %s\n", buf);
-// 	// memset(buf, 0, 100);
-
-// 	easy_cd("dir1");
-// 	// EasyPwd(buf);
-// 	easy_dir_list_files("..", buf);
-// 	printf("ParentDir: %s\n", buf);
-// 	// memset(buf, 0, 100);
-
-// 	// EasyCd(".");
-// 	// EasyPwd(buf);
-// 	// printf("CurDir: %s\n", buf);
-// 	// memset(buf, 0, 100);
-
-// 	// EasyCd("..");
-// 	// EasyPwd(buf);
-// 	// printf("CurDir: %s\n", buf);
-// 	// memset(buf, 0, 100);
-
-// 	// EasyCd("..");
-// 	// EasyPwd(buf);
-// 	// printf("CurDir: %s\n", buf);
-// 	// memset(buf, 0, 100);
-// }

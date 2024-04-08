@@ -11,6 +11,10 @@ easy_dir_t *current_dir;
 easy_file_t *global_file_pool;
 bool *global_file_pool_bitmap;
 
+#ifdef __DEMO_USE
+int start_block_id;
+#endif
+
 static easy_file_t *create_file_internal(const char *FileName, file_type Type);
 
 static easy_status easy_dir_add_file(easy_dir_t *dir, uint32_t file_id);
@@ -31,17 +35,39 @@ static uint32_t get_file_name_len(const char *file_name)
  * return 0 - not equal
  *        1 - equal
  */
-static bool compare_file_name(const char *Name1, const char *Name2)
+static bool compare_file_name(const char *name1, const char *name2)
 {
-	return !strcmp(Name1, Name2);
+	return !strcmp(name1, name2);
 }
 
-static easy_dir_t *easy_file_to_easy_dir(easy_file_t *File)
+static easy_status ensure_file_has_block(easy_file_t *file)
 {
-	if (File->type != EASY_TYPE_DIR)
+	easy_status status;
+
+	if (file->block_num == 0) {
+		status = alloc_block(&(file->block_ids[0]));
+		if (status != EASY_SUCCESS) {
+			printf("%s alloc block failed\n", __func__);
+			return EASY_BLOCK_ALLOC_ERROR;
+		}
+		file->block_num++;
+	}
+
+	return EASY_SUCCESS;
+}
+
+static easy_dir_t *easy_file_to_easy_dir(easy_file_t *file)
+{
+	easy_status status;
+	if (file->type != EASY_TYPE_DIR)
 		return NULL;
 
-	return (easy_dir_t *)get_block_data(File->block_ids[0]);
+	status = ensure_file_has_block(file);
+	if (status != EASY_SUCCESS) {
+		return NULL;
+	}
+
+	return (easy_dir_t *)get_block_data(file->block_ids[0]);
 }
 
 static easy_file_t *easy_dir_to_easy_file(easy_dir_t *Dir)
@@ -229,6 +255,10 @@ easy_dir_t *create_dir(const char *file_name, bool is_root, easy_dir_t *cur_dir)
 	return new_dir;
 }
 
+#ifdef __DEMO_USE
+extern void set_start_block();
+#endif
+
 easy_status easy_create_root_dir(void)
 {
 	root_dir = create_dir("/", 1, NULL);
@@ -236,6 +266,10 @@ easy_status easy_create_root_dir(void)
 		return EASY_DIR_CREATE_ROOT_DIR_FAILED;
 	}
 	current_dir = root_dir;
+
+#ifdef __DEMO_USE
+	set_start_block();
+#endif
 
 	return EASY_SUCCESS;
 }
@@ -335,27 +369,14 @@ static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id)
 
 static easy_file_t *create_file_internal(const char *file_name, file_type type)
 {
-	easy_status status;
 	easy_file_t *new_file = NULL;
-	uint32_t new_block_id;
 
 	new_file = file_pool_get_new_file(file_name, type);
 	// printf("create_file: %s id: %d\n", file_name, new_file->id);
 	if (!new_file) {
 		return NULL;
 	}
-
-	if (unlikely(type == EASY_TYPE_FILE_TRANS || type == EASY_TYPE_DIR_TRANS)) {
-		status = alloc_block_trans(&new_block_id);
-	} else {
-		status = alloc_block(&new_block_id);
-	}
-	if (status != EASY_SUCCESS) {
-		return NULL;
-	}
-
-	new_file->block_num = 1;
-	new_file->block_ids[new_file->block_num - 1] = new_block_id;
+	new_file->block_num = 0;
 
 	return new_file;
 }
@@ -556,11 +577,18 @@ easy_status easy_close_file(easy_file_t *file)
 	return EASY_SUCCESS;
 }
 
+#ifndef __DEMO_USE
 static easy_status easy_read_file(easy_file_t *file, uint32_t nbyte, void *buf)
 {
+	easy_status status;
+
 	/* Currently we assume one file contains only one blocks! */
 	if (nbyte > BLOCK_SIZE) {
 		return EASY_FILE_NOT_SUPPORT;
+	}
+	status = ensure_file_has_block(file);
+	if (status != EASY_SUCCESS) {
+		return status;
 	}
 
 	read_block(file->block_ids[0], nbyte, buf);
@@ -583,6 +611,10 @@ static easy_status easy_write_file(easy_file_t *file, uint32_t nbyte, const void
 	 * Thus write postion == file size.
 	 */
 	write_pos = file->file_size;
+	status = ensure_file_has_block(file);
+	if (status != EASY_SUCCESS) {
+		return status;
+	}
 	status = write_block(file->block_ids[0], nbyte, write_pos, buf);
 	if (status != EASY_SUCCESS) {
 		return status;
@@ -591,6 +623,51 @@ static easy_status easy_write_file(easy_file_t *file, uint32_t nbyte, const void
 
 	return EASY_SUCCESS;
 }
+#else
+/**
+ * For demo use, each character use one block.
+ */
+static easy_status easy_demo_write_file(easy_file_t *file, uint32_t nbyte, const void *buf)
+{
+	easy_status status;
+	uint32_t block_num;
+	uint32_t block_id;
+	uint32_t i;
+
+	block_num = strlen((char *)buf);
+	for (i = file->block_num; i < block_num; ++i) {
+		status = alloc_block(&block_id);
+		if (status != EASY_SUCCESS) {
+			return EASY_BLOCK_ALLOC_ERROR;
+		}
+		file->block_ids[i] = block_id;
+		file->block_num++;
+	}
+
+	for (i = 0; i < block_num; ++i) {
+		status = write_block(file->block_ids[i], 1, 0, buf + i);
+		if (status != EASY_SUCCESS) {
+			return status;
+		}
+	}
+	file->file_size += nbyte;
+
+	return EASY_SUCCESS;
+}
+
+static easy_status easy_demo_read_file(easy_file_t *file, uint32_t nbyte, void *buf)
+{
+	uint32_t i;
+	if (nbyte > file->block_num) {
+		nbyte = file->block_num;
+	}
+
+	for (i = 0; i < nbyte; ++i)
+		read_block(file->block_ids[i], 1, (char *)buf + i);
+
+	return EASY_SUCCESS;
+}
+#endif
 
 /************************************************************
  *        File Layer
@@ -661,7 +738,11 @@ easy_status easy_cat(const char *file_name, void *buf)
 		return status;
 	}
 
+#ifndef __DEMO_USE
 	status = easy_read_file(file, file->file_size, buf);
+#else
+	status = easy_demo_read_file(file, file->file_size, buf);
+#endif
 	if (status != EASY_SUCCESS) {
 		return status;
 	}
@@ -709,7 +790,11 @@ easy_status easy_echo(const char *file_name, const void *write_buf)
 		return status;
 	}
 
+#ifndef __DEMO_USE
 	status = easy_write_file(file, strlen(write_buf), write_buf);
+#else
+	status = easy_demo_write_file(file, strlen(write_buf), write_buf);
+#endif
 	if (status != EASY_SUCCESS) {
 		return status;
 	}
@@ -720,4 +805,22 @@ easy_status easy_echo(const char *file_name, const void *write_buf)
 	}
 
 	return status;
+}
+
+easy_status easy_ls_blocks(void *buf)
+{
+	return list_blocks(buf);
+}
+
+easy_status easy_open(const char *file_name)
+{
+	easy_status status;
+	easy_file_t *file;
+
+	status = easy_open_file(file_name, &file);
+	if (status != EASY_SUCCESS) {
+		return status;
+	}
+
+	return EASY_SUCCESS;
 }

@@ -25,7 +25,7 @@ struct easy_file {
 	char name[MAX_FILE_NAME_LEN];
 	uint32_t block_ids[MAX_FILE_BLOCKS];
 	uint32_t block_num;
-	uint32_t file_size;  // Byte
+	uint32_t file_size; // Byte
 	uint32_t id;
 	file_type type; // EASY_FILE can be file or directory
 	file_state state;
@@ -64,4 +64,8 @@ easy_status easy_cat(const char *file_name, void *read_buf);
 easy_status easy_ls(void *buf);
 
 easy_status easy_echo(const char *file_name, const void *write_buf);
+
+easy_status easy_ls_blocks(void *buf);
+
+easy_status easy_open(const char *file_name);
 #endif
