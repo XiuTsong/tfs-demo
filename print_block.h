@@ -15,9 +15,9 @@ void print_blocks(uint32_t start_block_id, uint32_t block_num);
 #define MAX_STR_LEN 24
 
 #define COLOR_NONE "\033[0m"
-#define COLOR_RED "\033[0;31m"
-#define COLOR_GREEN "\033[0;32m"
-#define COLOR_BLUE "\033[0;34m"
+#define COLOR_RED "\033[1;31m"
+#define COLOR_GREEN "\033[1;32m"
+#define COLOR_BLUE "\033[1;34m"
 #define COLOR_DARK_GRAY "\033[1;30m"
 #define COLOR_CYAN "\033[0;36m"
 #define COLOR_PURPLE "\033[0;35m"

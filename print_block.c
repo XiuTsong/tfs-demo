@@ -9,7 +9,7 @@ print_system_t print_core;
 #define DEFAULT_BLOCK_PER_LAYER 8
 #define DEFAULT_LAYER_INTERVAL 2
 
-const char *default_symbol = "@";
+const char *default_symbol = "■";
 
 static void init_print_system(uint32_t start_block_id, uint32_t block_num)
 {
@@ -42,10 +42,10 @@ static void __print_colored_string(uint32_t state, const char* str)
             color_print(COLOR_BLUE, str);
             break;
         case BLOCK_TRANS:
-            color_print(COLOR_YELLOW, str);
+            color_print(COLOR_GREEN, str);
             break;
         case BLOCK_ALLOC_OVER:
-            color_print(COLOR_RED, str);
+            color_print(COLOR_PURPLE, str);
             break;
         case BLOCK_FREE_OVER:
             color_print(COLOR_RED, str);
