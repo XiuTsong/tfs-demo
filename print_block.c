@@ -6,8 +6,8 @@ print_system_t print_core;
 
 #define DEFAULT_PRINT_SIZE 4
 #define DEFAULT_PRINT_INTERVAL 4
-#define DEFAULT_BLOCK_PER_LAYER 8
-#define DEFAULT_LAYER_INTERVAL 2
+#define DEFAULT_BLOCK_PER_LAYER 4
+#define DEFAULT_LAYER_INTERVAL 1
 
 const char *default_symbol = "■";
 
@@ -36,7 +36,7 @@ static void __print_colored_string(uint32_t state, const char* str)
 {
     switch (state) {
         case BLOCK_FREE:
-            color_print(COLOR_WHITE, str);
+            color_print(COLOR_DARK_GRAY, str);
             break;
         case BLOCK_ALLOC:
             color_print(COLOR_BLUE, str);
@@ -62,7 +62,8 @@ static void __print_top_or_bottom(uint32_t state)
         }
         else {
             __print_colored_string(state, default_symbol);
-            printf(" ");
+            __print_colored_string(state, "-");
+            // printf(" ");
         }
     }
 }
