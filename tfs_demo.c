@@ -28,25 +28,77 @@ int init_file_system(void)
 
 	return ret;
 }
-static int create_file(const char args[][MAX_LEN], __maybe_unused char *read_buf)
+
+static int check_create_option(const char args[][MAX_LEN])
 {
-	if (!strcmp(args[1], "-t")) {
-		return easy_create_trans_file(args[2]);
+	if (args[1][0] == '-') {
+		if (!strcmp(args[1], "-t")) {
+			return 1;
+		} else {
+			return -1;
+		}
 	}
-	return easy_create_file(args[1]);
+	return 2;
 }
 
-static int remove_file(const char args[][MAX_LEN], __maybe_unused char *read_buf)
+static int check_remove_option(const char args[][MAX_LEN])
 {
-	return easy_remove_file(args[1]);
+	if (args[1][0] == '-') {
+		if (!strcmp(args[1], "-f")) {
+			return 1;
+		} else {
+			return -1;
+		}
+	}
+	return 2;
 }
 
-static int create_dir(const char args[][MAX_LEN], __maybe_unused char *read_buf)
+static int create_file(__maybe_unused int argc, const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
+	int ret;
+
+	if (argc <= 1) {
+		printf("usage: create/touch [-t] filename\n");
+		return 0;
+	}
+	ret = check_create_option(args);
+	if (ret == 1) {
+		return easy_create_trans_file(args[2]);
+	} else if (ret == 2) {
+		return easy_create_file(args[1]);
+	}
+	printf("unknown option \"%s\"\n", args[1]);
+	return 0;
+}
+
+static int remove_file(__maybe_unused int argc, const char args[][MAX_LEN], __maybe_unused char *read_buf)
+{
+	int ret;
+	if (argc <= 1) {
+		printf("usage: remove/rm filename\n");
+		return 0;
+	}
+	ret = check_remove_option(args);
+	if (ret == 1) {
+		/* Just ignore '-r' option */
+		return easy_remove_file(args[2]);
+	} else if (ret == 2) {
+		return easy_remove_file(args[1]);
+	}
+	printf("unknown option \"%s\"\n", args[1]);
+	return 0;
+}
+
+static int create_dir(__maybe_unused int argc, const char args[][MAX_LEN], __maybe_unused char *read_buf)
+{
+	if (argc <= 1) {
+		printf("usage: mkdir dirname\n");
+		return 0;
+	}
 	return easy_create_dir(args[1]);
 }
 
-static int ls(__maybe_unused const char args[][MAX_LEN], char *read_buf)
+static int ls(__maybe_unused int argc, __maybe_unused const char args[][MAX_LEN], char *read_buf)
 {
 	int ret;
 	ret = easy_ls(read_buf);
@@ -54,12 +106,16 @@ static int ls(__maybe_unused const char args[][MAX_LEN], char *read_buf)
 	return ret;
 }
 
-static int cd(const char args[][MAX_LEN], __maybe_unused char *read_buf)
+static int cd(__maybe_unused int argc, const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
+	if (argc <= 1) {
+		printf("usage: cd dirname\n");
+		return 0;
+	}
 	return easy_cd(args[1]);
 }
 
-static int pwd(__maybe_unused const char args[][MAX_LEN], char *read_buf)
+static int pwd(__maybe_unused int argc, __maybe_unused const char args[][MAX_LEN], char *read_buf)
 {
 	int ret;
 	ret = easy_pwd(read_buf);
@@ -67,48 +123,68 @@ static int pwd(__maybe_unused const char args[][MAX_LEN], char *read_buf)
 	return ret;
 }
 
-static int cat(const char args[][MAX_LEN], char *read_buf)
+static int cat(__maybe_unused int argc, const char args[][MAX_LEN], char *read_buf)
 {
 	int ret;
+	if (argc <= 1) {
+		printf("usage: cat filename\n");
+		return 0;
+	}
 	ret = easy_cat(args[1], read_buf);
 	if (strlen(read_buf))
 		printf("%s\n", read_buf);
 	return ret;
 }
 
-static int read(const char args[][MAX_LEN], char *read_buf)
+static int read(__maybe_unused int argc, const char args[][MAX_LEN], char *read_buf)
 {
 	int ret;
+	if (argc <= 1) {
+		printf("usage: read filename\n");
+		return 0;
+	}
 	ret = easy_read(args[1], read_buf);
 	if (strlen(read_buf))
 		printf("%s\n", read_buf);
 	return ret;
 }
 
-static int open(const char args[][MAX_LEN], __maybe_unused char *read_buf)
+static int open(__maybe_unused int argc, const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
 	int ret;
+	if (argc <= 1) {
+		printf("usage: open filename\n");
+		return 0;
+	}
 	ret = easy_open(args[1]);
 	return ret;
 }
 
 /* e.g echo "123" a.txt */
-static int echo(const char args[][MAX_LEN], __maybe_unused char *read_buf)
+static int echo(__maybe_unused int argc, const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
+	if (argc <= 2) {
+		printf("usage: echo \"content\" filename\n");
+		return 0;
+	}
 	return easy_echo(args[2], args[1]);
 }
 
-static int write(const char args[][MAX_LEN], __maybe_unused char *read_buf)
+static int write(__maybe_unused int argc, const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
+	if (argc <= 2) {
+		printf("usage: write \"content\" filename\n");
+		return 0;
+	}
 	return easy_write(args[2], args[1]);
 }
 
-static int quit(__maybe_unused const char args[][MAX_LEN], __maybe_unused char *read_buf)
+static int quit(__maybe_unused int argc, __maybe_unused const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
 	return -1;
 }
 
-static int ls_blk(__maybe_unused const char args[][MAX_LEN], __maybe_unused char *read_buf)
+static int ls_blk(__maybe_unused int argc, __maybe_unused const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
 	return easy_ls_blocks(read_buf);
 }
@@ -151,12 +227,12 @@ static int end_tfs(int exit_code)
 	return 0;
 }
 
-static int forward_fs_ops(const char args[][MAX_LEN], char *buf)
+static int forward_fs_ops(int argc, const char args[][MAX_LEN], char *buf)
 {
 	size_t i;
 	for (i = 0; i < sizeof(fs_ops) / sizeof(fs_ops[0]); i++) {
 		if (!strcmp(args[0], fs_ops[i].cmd_name)) {
-			return fs_ops[i].op(args, buf);
+			return fs_ops[i].op(argc, args, buf);
 		}
 	}
 	printf("command \"%s\" not found\n", args[0]);
@@ -207,7 +283,7 @@ int tfs_main_work()
 			continue;
 		}
 
-		ret = forward_fs_ops(global_args, global_read_buf);
+		ret = forward_fs_ops(argc, global_args, global_read_buf);
 	}
 
 	ret = end_tfs(ret);

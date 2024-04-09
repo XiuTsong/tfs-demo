@@ -7,7 +7,7 @@
 
 struct easy_fs_op {
 	const char *cmd_name;
-    int (*op)(const char args[][MAX_LEN], char *read_buf);
+    int (*op)(int argc, const char args[][MAX_LEN], char *read_buf);
 };
 
 #endif
