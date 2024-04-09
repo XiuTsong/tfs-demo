@@ -42,10 +42,10 @@ static void __print_colored_string(uint32_t state, const char* str)
             color_print(COLOR_BLUE, str);
             break;
         case BLOCK_TRANS:
-            color_print(COLOR_GREEN, str);
+            color_print(COLOR_YELLOW, str);
             break;
         case BLOCK_ALLOC_OVER:
-            color_print(COLOR_CYAN, str);
+            color_print(COLOR_RED, str);
             break;
         case BLOCK_FREE_OVER:
             color_print(COLOR_RED, str);

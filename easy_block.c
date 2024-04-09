@@ -53,6 +53,11 @@ easy_status init_block_state_machine(void)
 	block_state_machine[BLOCK_FREE_OVER][WRITE_NORMAL] = BLOCK_ALLOC_OVER;
 	block_state_machine[BLOCK_ALLOC_OVER][DELETE_NORMAL] = BLOCK_FREE_OVER;
 	block_state_machine[BLOCK_ALLOC_OVER][CLEAN] = BLOCK_ALLOC;
+	/* If remote user deletes overwritten block, just clean it */
+	block_state_machine[BLOCK_ALLOC_OVER][DELETE_TRANS] = BLOCK_ALLOC;
+	block_state_machine[BLOCK_FREE_OVER][DELETE_TRANS] = BLOCK_FREE;
+	/* Clean TRANS block, just like DELETE_TRANS */
+	block_state_machine[BLOCK_TRANS][CLEAN] = BLOCK_FREE;
 	return EASY_SUCCESS;
 }
 
@@ -201,14 +206,14 @@ void set_start_block()
 easy_status list_blocks(__maybe_unused void *buf)
 {
 #ifdef __DEMO_USE
-	// int block_id;
-	// easy_block_t *block;
+	int block_id;
+	easy_block_t *block;
 
-	// for (block_id = start_block_id; block_id < MAX_BLOCK && block_id < start_block_id + 16; ++block_id) {
-	// 	block = get_block(block_id);
-	// 	printf("[%d]", block->state);
-	// }
-	// printf("\n");
+	for (block_id = start_block_id; block_id < MAX_BLOCK && block_id < start_block_id + 16; ++block_id) {
+		block = get_block(block_id);
+		printf("[%d]", block->state);
+	}
+	printf("\n");
 	print_blocks(start_block_id, 16);
 
 	return EASY_SUCCESS;
