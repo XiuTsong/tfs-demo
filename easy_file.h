@@ -47,6 +47,8 @@ easy_status easy_create_file(const char *file_name);
 
 easy_status easy_remove_file(const char *file_name);
 
+easy_status easy_remove_dir(const char *dir_name);
+
 easy_status easy_create_trans_file(const char *file_name);
 
 easy_status easy_remove_trans_file(const char *file_name);

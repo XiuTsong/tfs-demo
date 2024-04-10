@@ -30,6 +30,7 @@ static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id);
 	for (uint32_t __id = 0, block_id; __id < (file)->block_num && (block_id = file->block_ids[__id]); ++__id)
 
 #define is_file_trans(file) ((file)->type == EASY_TYPE_FILE_TRANS || (file)->type == EASY_TYPE_DIR_TRANS)
+#define is_dir(file) ((file)->type == EASY_TYPE_DIR || (file)->type == EASY_TYPE_DIR_TRANS)
 
 static uint32_t get_file_name_len(const char *file_name)
 {
@@ -466,25 +467,22 @@ static void clean_file_metadata(easy_file_t *file)
 	file->block_num = 0;
 }
 
-easy_status easy_remove_file(const char *file_name)
+static easy_status easy_remove_dir_internal(easy_dir_t *delete_dir, easy_dir_t *parent_dir);
+
+static inline bool is_special_dir(easy_file_t *file)
+{
+	return compare_file_name(file->name, ".") || compare_file_name(file->name, "..");
+}
+
+static easy_status easy_remove_file_internal(easy_file_t *delete_file, easy_dir_t *parent_dir)
 {
 	easy_status status;
-	easy_file_t *delete_file = NULL;
-	easy_dir_t *cur_dir;
 
-	cur_dir = get_cur_dir();
-
-	if (!easy_dir_check_file_exist(cur_dir, file_name)) {
-		printf("file \"%s\" not exists\n", file_name);
-		return EASY_SUCCESS;
+	if (is_dir(delete_file) && !is_special_dir(delete_file)) {
+		return easy_remove_dir_internal(easy_file_to_easy_dir(delete_file), parent_dir);
 	}
 
-	delete_file = easy_dir_get_file(cur_dir, file_name);
-	if (!delete_file) {
-		printf("find parent directory failed\n");
-		return EASY_FILE_NOT_FOUND_ERROR;
-	}
-
+	/** For "." and "..", treat as nornal file */
 	for_each_block_id_in_file(block_id, delete_file)
 	{
 		if (unlikely(is_file_trans(delete_file))) {
@@ -496,8 +494,8 @@ easy_status easy_remove_file(const char *file_name)
 			return status;
 		}
 	}
-	/* Update directory status */
-	status = easy_dir_remove_file(cur_dir, delete_file->id);
+
+	status = easy_dir_remove_file(parent_dir, delete_file->id);
 	if (status != EASY_SUCCESS) {
 		return status;
 	}
@@ -505,6 +503,80 @@ easy_status easy_remove_file(const char *file_name)
 	clean_file_metadata(delete_file);
 
 	return EASY_SUCCESS;
+}
+
+static inline void change_dir_to_file(easy_dir_t *dir)
+{
+	easy_file_t *dir_file = easy_dir_to_easy_file(dir);
+	if (dir_file->type == EASY_TYPE_DIR)
+		dir_file->type = EASY_TYPE_FILE;
+	else if (dir_file->type == EASY_TYPE_DIR_TRANS)
+		dir_file->type = EASY_TYPE_FILE_TRANS;
+	else {
+		printf("unsupported directory type: %d\n", dir_file->type);
+	}
+}
+
+static easy_status easy_remove_dir_internal(easy_dir_t *delete_dir, easy_dir_t *parent_dir)
+{
+	easy_status status;
+	easy_file_t *delete_dir_file = NULL;
+	easy_file_t *child_file;
+
+	delete_dir_file = easy_dir_to_easy_file(delete_dir);
+
+	while (delete_dir->file_num > 0) {
+		child_file = &global_file_pool[delete_dir->file_ids[0]];
+		status = easy_remove_file_internal(child_file, delete_dir);
+		if (status != EASY_SUCCESS) {
+			return status;
+		}
+	}
+
+	/** Before removing dir inself, change it to file type to avoid nested remove-loop */
+	change_dir_to_file(delete_dir);
+	easy_remove_file_internal(delete_dir_file, parent_dir);
+
+	return EASY_SUCCESS;
+}
+
+easy_status easy_remove_file(const char *file_name)
+{
+	easy_file_t *delete_file = NULL;
+	easy_dir_t *cur_dir;
+
+	cur_dir = get_cur_dir();
+
+	delete_file = easy_dir_get_file(cur_dir, file_name);
+	if (!delete_file) {
+		printf("file \"%s\" not exists\n", file_name);
+		return EASY_FILE_NOT_FOUND_ERROR;
+	}
+
+	if (is_dir(delete_file) && !is_special_dir(delete_file)) {
+		return easy_remove_dir_internal(easy_file_to_easy_dir(delete_file), cur_dir);
+	}
+
+	return easy_remove_file_internal(delete_file, cur_dir);
+}
+
+easy_status easy_remove_dir(const char *dir_name)
+{
+	easy_file_t *delete_dir_file = NULL;
+	easy_dir_t *cur_dir;
+	easy_dir_t *delete_dir;
+
+	cur_dir = get_cur_dir();
+
+	delete_dir_file = easy_dir_get_file(cur_dir, dir_name);
+	if (!delete_dir_file) {
+		printf("directory \"%s\" not exists\n", dir_name);
+		return EASY_FILE_NOT_FOUND_ERROR;
+	}
+
+	delete_dir = easy_file_to_easy_dir(delete_dir_file);
+
+	return easy_remove_dir_internal(delete_dir, cur_dir);
 }
 
 easy_status easy_create_trans_file(const char *file_name)

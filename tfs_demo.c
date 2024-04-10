@@ -56,18 +56,6 @@ static int check_create_option(const char args[][MAX_LEN])
 	return 2;
 }
 
-static int check_remove_option(const char args[][MAX_LEN])
-{
-	if (args[1][0] == '-') {
-		if (!strcmp(args[1], "-f")) {
-			return 1;
-		} else {
-			return -1;
-		}
-	}
-	return 2;
-}
-
 static int create_file(__maybe_unused int argc, const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
 	int ret;
@@ -88,19 +76,23 @@ static int create_file(__maybe_unused int argc, const char args[][MAX_LEN], __ma
 
 static int remove_file(__maybe_unused int argc, const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
-	int ret;
 	if (argc <= 1) {
 		printf("usage: remove/rm filename\n");
 		return 0;
 	}
-	ret = check_remove_option(args);
-	if (ret == 1) {
-		/* Just ignore '-r' option */
-		return easy_remove_file(args[2]);
-	} else if (ret == 2) {
+	if (argc == 2) {
 		return easy_remove_file(args[1]);
 	}
-	printf("unknown option \"%s\"\n", args[1]);
+	if (argc == 3) {
+		if (!strcmp(args[1], "-f"))
+			return easy_remove_file(args[2]);
+		if (!strcmp(args[1], "-r"))
+			return easy_remove_dir(args[2]);
+		printf("usage: remove/rm [-f/-r] filename\n");
+	}
+
+	printf("too many arguments\n");
+
 	return 0;
 }
 
@@ -213,7 +205,7 @@ static int print_help(__maybe_unused int argc, __maybe_unused const char args[][
 {
 	printf("quit/q\n");
 	printf("create/touch [-t] filename\n");
-	printf("remove/rm filename\n");
+	printf("remove/rm [-f/-r] filename/dirname\n");
 	printf("mkdir dirname\n");
 	printf("ls\n");
 	printf("cd dirname\n");
