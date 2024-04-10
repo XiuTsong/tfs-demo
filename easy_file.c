@@ -13,10 +13,6 @@ easy_dir_t *current_dir;
 easy_file_t *global_file_pool;
 bool *global_file_pool_bitmap;
 
-#ifdef __DEMO_USE
-int start_block_id;
-#endif
-
 static easy_file_t *create_file_internal(const char *FileName, file_type Type);
 
 static easy_status easy_dir_add_file(easy_dir_t *dir, uint32_t file_id);

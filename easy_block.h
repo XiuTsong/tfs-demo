@@ -28,6 +28,9 @@ typedef enum easy_block_state {
 } block_state;
 
 typedef struct {
+#ifdef __DEMO_USE
+	uint32_t start_block_id;
+#endif
 	bool bitmap[MAX_BLOCK];
 } easy_block_system_t;
 

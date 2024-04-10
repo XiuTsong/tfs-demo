@@ -23,5 +23,5 @@ void print_blocks(uint32_t start_block_id, uint32_t block_num);
 #define COLOR_PURPLE "\033[0;35m"
 #define COLOR_BROWN "\033[0;33m"
 #define COLOR_YELLOW "\033[5;33m"
-#define COLOR_WHITE "\033[1;37m"
+#define COLOR_WHITE "\033[0;37m"
 #endif

@@ -191,15 +191,11 @@ easy_status clean_block(uint32_t block_id)
 }
 
 #ifdef __DEMO_USE
-extern int start_block_id;
-#endif
-
-#ifdef __DEMO_USE
 void set_start_block()
 {
 	for (int i = MAX_BLOCK - 1; i >= 0; i--) {
 		if (global_block_system->bitmap[i]) {
-			start_block_id = i + 1;
+			global_block_system->start_block_id = i + 1;
 			break;
 		}
 	}
@@ -218,7 +214,7 @@ easy_status list_blocks(__maybe_unused void *buf)
 	// 	printf("[%d]", block->state);
 	// }
 	// printf("\n");
-	print_blocks(start_block_id, 16);
+	print_blocks(global_block_system->start_block_id, 16);
 
 	return EASY_SUCCESS;
 #else

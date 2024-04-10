@@ -36,7 +36,7 @@ static void __print_colored_string(uint32_t state, const char* str)
 {
     switch (state) {
         case BLOCK_FREE:
-            color_print(COLOR_DARK_GRAY, str);
+            color_print(COLOR_WHITE, str);
             break;
         case BLOCK_ALLOC:
             color_print(COLOR_BLUE, str);
@@ -74,13 +74,16 @@ static void __print_middle(uint32_t state)
     for (j = 0; j < print_core.print_size; j++) {
         if (j == 0) {
             __print_colored_string(state, default_symbol);
-            printf(" ");
+            if (is_block_alloc(state))
+                __print_colored_string(state, "-");
+            else
+                printf(" ");
         }
         else if (j == print_core.print_size - 1)
             __print_colored_string(state, default_symbol);
         else if (is_block_alloc(state)) {
             __print_colored_string(state, default_symbol);
-            printf(" ");
+            __print_colored_string(state, "-");
         }
         else
             printf("  ");
