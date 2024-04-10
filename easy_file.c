@@ -2,6 +2,7 @@
 #include "easy_block.h"
 #include "easy_defs.h"
 #include "easy_disk.h"
+#include "print_block.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -24,6 +25,12 @@ static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id);
 /************************************************************
  *        Tool functions
  ************************************************************/
+
+#define for_each_block_id_in_file(block_id, file)                                                                      \
+	for (uint32_t __id = 0, block_id; __id < (file)->block_num && (block_id = file->block_ids[__id]); ++__id)
+
+#define is_file_trans(file) ((file)->type == EASY_TYPE_FILE_TRANS || (file)->type == EASY_TYPE_DIR_TRANS)
+
 static uint32_t get_file_name_len(const char *file_name)
 {
 	return strlen(file_name);
@@ -303,14 +310,56 @@ easy_status easy_create_dir(const char *dir_name)
 	return EASY_SUCCESS;
 }
 
+const char *color_green = COLOR_GREEN;
+const char *color_blue = COLOR_BLUE;
+const char *color_white = COLOR_WHITE;
+const char *color_none = COLOR_NONE;
+
+#define add_str_to_buf(str, buf_ptr)                                                                                   \
+	do {                                                                                                           \
+		memcpy(buf_ptr, str, sizeof(char) * strlen(str));                                                      \
+		buf_ptr += strlen(str);                                                                                \
+	} while (0)
+
+static void add_file_name_to_buf(easy_file_t *file, char **buf_ptr)
+{
+	char *ptr = *buf_ptr;
+
+	if (is_file_trans(file)) {
+		/** The file name of the transparent file is displayed in green */
+		add_str_to_buf(color_green, ptr);
+	} else if (file->type == EASY_TYPE_FILE) {
+		add_str_to_buf(color_blue, ptr);
+	} else {
+		add_str_to_buf(color_white, ptr);
+	}
+
+	add_str_to_buf(file->name, ptr);
+	add_str_to_buf(" ", ptr);
+	add_str_to_buf(color_none, ptr);
+
+	*buf_ptr = ptr;
+}
+
+static easy_status easy_dir_ls_internal(easy_dir_t *dir, void *buf)
+{
+	easy_file_t *file;
+	char *buf_ptr;
+	uint32_t i;
+
+	buf_ptr = buf;
+	for (i = 0; i < dir->file_num; ++i) {
+		file = file_pool_get_file_by_id(dir->file_ids[i]);
+		add_file_name_to_buf(file, &buf_ptr);
+	}
+
+	return EASY_SUCCESS;
+}
+
 easy_status easy_dir_list_files(const char *dir_name, void *buf)
 {
 	easy_dir_t *dir;
 	easy_dir_t *cur_dir = get_cur_dir();
-	easy_file_t *file;
-	char *buf_ptr;
-	uint32_t file_len;
-	uint32_t i;
 
 	if (compare_file_name(dir_name, ".")) {
 		dir = cur_dir;
@@ -320,18 +369,7 @@ easy_status easy_dir_list_files(const char *dir_name, void *buf)
 		dir = get_easy_dir_by_name(dir_name, cur_dir);
 	}
 
-	buf_ptr = buf;
-	for (i = 0; i < dir->file_num; ++i) {
-		file = file_pool_get_file_by_id(dir->file_ids[i]);
-		file_len = get_file_name_len(file->name);
-		memcpy(buf_ptr, file->name, sizeof(char) * file_len);
-		buf_ptr += file_len;
-		/** Add space ' ' to separate file names */
-		*buf_ptr = ' ';
-		buf_ptr++;
-	}
-
-	return EASY_SUCCESS;
+	return easy_dir_ls_internal(dir, buf);
 }
 
 static easy_file_t *easy_dir_get_file(easy_dir_t *dir, const char *file_name)
@@ -366,11 +404,13 @@ static easy_status easy_dir_add_file(easy_dir_t *dir, uint32_t file_id)
 
 static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id)
 {
-	uint32_t i;
+	uint32_t i, j;
 
 	for (i = 0; i < MAX_FILE_NUM; ++i) {
 		if (dir->file_ids[i] == file_id) {
-			dir->file_ids[i] = 0;
+			/* Naive implementation, just move the back part of the array forward */
+			for (j = 0; j < MAX_FILE_NUM - 1; ++j)
+				dir->file_ids[i + j] = dir->file_ids[i + j + 1];
 			dir->file_num--;
 			return EASY_SUCCESS;
 		}
@@ -381,11 +421,6 @@ static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id)
 /************************************************************
  *        EasyFile Related
  ************************************************************/
-
-#define for_each_block_id_in_file(block_id, file)                                                                      \
-	for (uint32_t __id = 0, block_id; __id < (file)->block_num && (block_id = file->block_ids[__id]); ++__id)
-
-#define is_file_trans(file) ((file)->type == EASY_TYPE_FILE_TRANS || (file)->type == EASY_TYPE_DIR_TRANS)
 
 static easy_file_t *create_file_internal(const char *file_name, file_type type)
 {
@@ -795,27 +830,9 @@ easy_status easy_cat(const char *file_name, void *buf)
 
 easy_status easy_ls(void *buf)
 {
-	easy_dir_t *dir;
 	easy_dir_t *cur_dir = get_cur_dir();
-	easy_file_t *file;
-	char *buf_ptr;
-	uint32_t file_len;
-	uint32_t i;
 
-	dir = cur_dir;
-
-	buf_ptr = buf;
-	for (i = 0; i < dir->file_num; ++i) {
-		file = file_pool_get_file_by_id(dir->file_ids[i]);
-		file_len = get_file_name_len(file->name);
-		memcpy(buf_ptr, file->name, sizeof(char) * file_len);
-		buf_ptr += file_len;
-		/** Add space ' ' to separate file names */
-		*buf_ptr = ' ';
-		buf_ptr++;
-	}
-
-	return EASY_SUCCESS;
+	return easy_dir_ls_internal(cur_dir, buf);
 }
 
 easy_status easy_echo(const char *file_name, const void *write_buf)

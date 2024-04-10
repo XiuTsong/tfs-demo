@@ -113,10 +113,15 @@ static int create_dir(__maybe_unused int argc, const char args[][MAX_LEN], __may
 	return easy_create_dir(args[1]);
 }
 
-static int ls(__maybe_unused int argc, __maybe_unused const char args[][MAX_LEN], char *read_buf)
+static int ls(int argc, __maybe_unused const char args[][MAX_LEN], char *read_buf)
 {
 	int ret;
-	ret = easy_ls(read_buf);
+	if (argc < 2)
+	 	/* only ls */
+		ret = easy_ls(read_buf);
+	else
+		/* ls dir */
+	 	ret = easy_dir_list_files(args[1], read_buf);
 	printf("%s\n", read_buf);
 	return ret;
 }
@@ -276,7 +281,7 @@ static int forward_fs_ops(int argc, const char args[][MAX_LEN], char *buf)
 	int ret;
 	for (i = 0; i < sizeof(fs_ops) / sizeof(fs_ops[0]); i++) {
 		if (!strcmp(args[0], fs_ops[i].cmd_name)) {
-			/* For now, load() before, and flush() after every operation */
+			/* For now, load() before, and flush() after every fs operation */
 			load();
 			ret = fs_ops[i].op(argc, args, buf);
 			flush();
@@ -287,7 +292,7 @@ static int forward_fs_ops(int argc, const char args[][MAX_LEN], char *buf)
 	return 0;
 }
 
-/* args need to be pre-allocated before */
+/* args needs to be pre-allocated before */
 static int split_string_to_args(char *str, char args[][MAX_LEN])
 {
 	int num = 0;

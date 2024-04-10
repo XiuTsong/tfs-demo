@@ -66,6 +66,7 @@ easy_status easy_flush_whole()
     return EASY_SUCCESS;
 }
 
+/* Naive implementation: just load the whole memory from disk */
 easy_status easy_load_whole()
 {
 	FILE *disk;
