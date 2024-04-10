@@ -210,14 +210,14 @@ void set_start_block()
 easy_status list_blocks(__maybe_unused void *buf)
 {
 #ifdef __DEMO_USE
-	int block_id;
-	easy_block_t *block;
+	// int block_id;
+	// easy_block_t *block;
 
-	for (block_id = start_block_id; block_id < MAX_BLOCK && block_id < start_block_id + 16; ++block_id) {
-		block = get_block(block_id);
-		printf("[%d]", block->state);
-	}
-	printf("\n");
+	// for (block_id = start_block_id; block_id < MAX_BLOCK && block_id < start_block_id + 16; ++block_id) {
+	// 	block = get_block(block_id);
+	// 	printf("[%d]", block->state);
+	// }
+	// printf("\n");
 	print_blocks(start_block_id, 16);
 
 	return EASY_SUCCESS;
