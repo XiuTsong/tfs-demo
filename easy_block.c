@@ -203,6 +203,9 @@ void set_start_block()
 #endif
 
 /* For demo use, only list status of the file data block */
+#ifdef __DEMO_USE
+#define DEFAULT_SHOW_BLOCK_NUM 16
+#endif
 easy_status list_blocks(__maybe_unused void *buf)
 {
 #ifdef __DEMO_USE
@@ -214,7 +217,7 @@ easy_status list_blocks(__maybe_unused void *buf)
 	// 	printf("[%d]", block->state);
 	// }
 	// printf("\n");
-	print_blocks(global_block_system->start_block_id, 16);
+	print_blocks(global_block_system->start_block_id, DEFAULT_SHOW_BLOCK_NUM);
 
 	return EASY_SUCCESS;
 #else

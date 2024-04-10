@@ -13,6 +13,8 @@ make all
 
 ### Example
 
+Normal file operations:
+
 ```
 $ ./main
 welcome to tfs-demo!
@@ -40,3 +42,14 @@ tfs-demo > q
 [1] tfs-demo finish!
 ```
 
+TFS related:
+
+```
+$ ./main
+welcome to tfs-demo!
+tfs-demo > touch -t a.txt  // use "-t" option to create a transparent file
+tfs-demo > echo 1234 a.txt // write some content to transparent file
+tfs-demo > lsblk           // use "lsblk" to show current data blocks (16 blocks on default)
+```
+
+You can create and write both normal files and transparent files at the same time, and use `lsblk` to show the block state transition.
