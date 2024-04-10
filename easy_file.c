@@ -191,7 +191,7 @@ bool easy_dir_check_file_exist(easy_dir_t *dir, const char *file_name)
 {
 	uint32_t i;
 	easy_file_t *file;
-	/** TODO: Check whether @FileName exist in @Dir */
+	/** TODO: Check whether @file_name exist in @dir */
 	for (i = 0; i < MAX_FILE_NUM; ++i) {
 		if (dir->file_ids[i] == 0)
 			continue;
@@ -409,8 +409,8 @@ static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id)
 	for (i = 0; i < MAX_FILE_NUM; ++i) {
 		if (dir->file_ids[i] == file_id) {
 			/* Naive implementation, just move the back part of the array forward */
-			for (j = 0; j < MAX_FILE_NUM - 1; ++j)
-				dir->file_ids[i + j] = dir->file_ids[i + j + 1];
+			for (j = i; j < MAX_FILE_NUM - 1; ++j)
+				dir->file_ids[j] = dir->file_ids[j + 1];
 			dir->file_num--;
 			return EASY_SUCCESS;
 		}
