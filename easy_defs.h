@@ -7,6 +7,8 @@ typedef unsigned int easy_status;
 typedef unsigned int easy_status;
 #define uint32_t unsigned int
 
+#define TOTAL_BYTES 102400
+
 #define EASY_SUCCESS 0
 
 #define EASY_BLOCK_INIT_FAILED 1
@@ -28,6 +30,11 @@ typedef unsigned int easy_status;
 #define EASY_DIR_TOO_MANY_FILE_ERROR 200
 #define EASY_DIR_NOT_FOUND_ERROR 300
 #define EASY_DIR_CREATE_FAILED 400
+
+#define EASY_DISK_INIT_FAILED 1000
+#define EASY_DISK_NOT_FOUND_ERROR 2000
+#define EASY_DISK_FLUSH_ERROR 3000
+#define EASY_DISK_LOAD_ERROR 4000
 
 #define __align(n) __attribute__((aligned(n)))
 #define likely(x)	__builtin_expect(!!(x), 1)

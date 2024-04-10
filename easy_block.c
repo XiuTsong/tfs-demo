@@ -5,6 +5,8 @@
 #include <string.h>
 
 easy_block_system_t *global_block_system;
+uint32_t global_block_num;
+void *global_block_base;
 int block_state_machine[MAX_BLOCK_STATE_NUM][MAX_BLOCK_OP_NUM];
 
 static inline bool is_block_writeable(const uint32_t block_id, bool is_trans)
@@ -19,19 +21,21 @@ static inline bool is_block_writeable(const uint32_t block_id, bool is_trans)
 	return flag;
 }
 
-easy_status init_block_system(void *memory_pool, unsigned int nbyte)
+easy_status init_block_system(void *memory_pool, unsigned int nbyte, bool is_init)
 {
 	uint32_t i;
 	uint32_t block_system_size;
 
-	memset(memory_pool, 0, nbyte);
-
 	global_block_system = memory_pool;
 	block_system_size = sizeof(*global_block_system);
-	global_block_system->block_base = memory_pool + block_system_size;
-	global_block_system->block_num = (nbyte - block_system_size) / BLOCK_SIZE;
-	for (i = 0; i < global_block_system->block_num; ++i) {
-		global_block_system->bitmap[i] = 0;
+	global_block_base = memory_pool + block_system_size;
+	global_block_num = (nbyte - block_system_size) / BLOCK_SIZE;
+
+	/* Only bitmap needs to read from disk */
+	if (is_init) {
+		for (i = 0; i < global_block_num; ++i) {
+			global_block_system->bitmap[i] = 0;
+		}
 	}
 
 	return EASY_SUCCESS;
@@ -61,9 +65,9 @@ easy_status init_block_state_machine(void)
 	return EASY_SUCCESS;
 }
 
-easy_status init_block_layer(void *memory_pool, unsigned int nbyte)
+easy_status init_block_layer(void *memory_pool, unsigned int nbyte, bool is_init)
 {
-	init_block_system(memory_pool, nbyte);
+	init_block_system(memory_pool, nbyte, is_init);
 
 	init_block_state_machine();
 
@@ -84,7 +88,7 @@ easy_status block_state_transition(const uint32_t block_id, const block_op op)
 
 easy_block_t *get_block(const uint32_t block_id)
 {
-	return (easy_block_t *)(global_block_system->block_base + BLOCK_SIZE * block_id);
+	return (easy_block_t *)(global_block_base + BLOCK_SIZE * block_id);
 }
 
 void *get_block_data(const uint32_t block_id)

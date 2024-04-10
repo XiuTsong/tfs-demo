@@ -29,8 +29,6 @@ typedef enum easy_block_state {
 
 typedef struct {
 	bool bitmap[MAX_BLOCK];
-	uint32_t block_num;
-	void *block_base;
 } easy_block_system_t;
 
 typedef struct {
@@ -41,7 +39,7 @@ typedef struct {
 	char block_data[BLOCK_DATA_SIZE];
 } easy_block_t;
 
-easy_status init_block_layer(void *memory_pool, uint32_t nbyte);
+easy_status init_block_layer(void *memory_pool, uint32_t nbyte, bool is_init);
 
 easy_status read_block(uint32_t block_id, uint32_t nbyte, void *buf);
 

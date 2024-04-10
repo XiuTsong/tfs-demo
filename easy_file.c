@@ -1,11 +1,13 @@
 #include "easy_file.h"
 #include "easy_block.h"
 #include "easy_defs.h"
+#include "easy_disk.h"
 #include <stdio.h>
 #include <string.h>
 
-#define FILE_PER_BLOCK (BLOCK_SIZE / sizeof(easy_file_t))
+#define FILE_STRUCT_PER_BLOCK (BLOCK_SIZE / sizeof(easy_file_t))
 
+extern easy_disk_system_t *global_disk_system;
 easy_dir_t *root_dir;
 easy_dir_t *current_dir;
 easy_file_t *global_file_pool;
@@ -81,6 +83,23 @@ static easy_file_t *easy_dir_to_easy_file(easy_dir_t *Dir)
 
 #define file_pool_get_file_by_id(file_id) (&global_file_pool[(file_id)])
 
+static easy_file_t *file_pool_get_file(const char *file_name)
+{
+	uint32_t i;
+	easy_file_t *file;
+
+	for (i = 1; i < MAX_FILE_NUM; ++i) {
+		if (global_file_pool_bitmap[i]) {
+			file = &global_file_pool[i];
+			if (compare_file_name(file->name, file_name)) {
+				return file;
+			}
+		}
+	}
+
+	return NULL;
+}
+
 static easy_file_t *file_pool_get_new_file(const char *file_name, file_type type)
 {
 	uint32_t i;
@@ -104,27 +123,30 @@ static easy_file_t *file_pool_get_new_file(const char *file_name, file_type type
 	return NULL;
 }
 
-easy_status easy_init_file_pool(void)
+easy_status easy_init_file_pool(bool is_init)
 {
 	uint32_t i;
-	uint32_t block_num;
+	uint32_t file_struct_block_num;
 	uint32_t block_id;
 
-	block_num = MAX_FILE_NUM / FILE_PER_BLOCK;
-	for (i = 0; i < block_num; ++i) {
-		alloc_block(0);
-	}
-	global_file_pool = (easy_file_t *)get_block_data(0);
+	file_struct_block_num = MAX_FILE_NUM / FILE_STRUCT_PER_BLOCK;
+	if (is_init) {
+		for (i = 0; i < file_struct_block_num; ++i) {
+			alloc_block(0);
+		}
+		global_file_pool = (easy_file_t *)get_block_data(0);
+		alloc_block(&block_id);
+		global_file_pool_bitmap = (bool *)get_block_data(block_id);
+		memset(global_file_pool, 0, sizeof(easy_file_t) * MAX_FILE_NUM);
+		memset(global_file_pool_bitmap, 0, MAX_FILE_NUM);
 
-	alloc_block(&block_id);
-	global_file_pool_bitmap = (bool *)get_block_data(block_id);
-
-	memset(global_file_pool, 0, sizeof(easy_file_t) * MAX_FILE_NUM);
-	memset(global_file_pool_bitmap, 0, MAX_FILE_NUM);
-
-	for (i = 0; i < MAX_FILE_NUM; ++i) {
-		global_file_pool[i].id = i;
-		global_file_pool_bitmap[i] = 0;
+		for (i = 0; i < MAX_FILE_NUM; ++i) {
+			global_file_pool[i].id = i;
+			global_file_pool_bitmap[i] = 0;
+		}
+	} else {
+		global_file_pool = (easy_file_t *)get_block_data(0);
+		global_file_pool_bitmap = (bool *)get_block_data(file_struct_block_num);
 	}
 
 	return EASY_SUCCESS;
@@ -265,7 +287,6 @@ easy_status easy_create_root_dir(void)
 	if (!root_dir) {
 		return EASY_DIR_CREATE_ROOT_DIR_FAILED;
 	}
-	current_dir = root_dir;
 
 #ifdef __DEMO_USE
 	set_start_block();
@@ -680,18 +701,31 @@ static easy_status easy_demo_read_file(easy_file_t *file, uint32_t nbyte, void *
 /************************************************************
  *        File Layer
  ************************************************************/
-easy_status init_file_layer(void)
+easy_status init_file_layer(bool is_init)
 {
 	easy_status status;
-	status = easy_init_file_pool();
+	easy_file_t *root_file;
+
+	status = easy_init_file_pool(is_init);
 	if (status != EASY_SUCCESS) {
 		return status;
 	}
 
-	status = easy_create_root_dir();
-	if (status != EASY_SUCCESS) {
-		return status;
+	if (is_init) {
+		status = easy_create_root_dir();
+		if (status != EASY_SUCCESS) {
+			return status;
+		}
+	} else {
+		root_file = file_pool_get_file("/");
+		if (!root_file) {
+			printf("Can not file root\n");
+			return EASY_FILE_NOT_FOUND_ERROR;
+		}
+		root_dir = easy_file_to_easy_dir(root_file);
 	}
+
+	current_dir = root_dir;
 
 	return status;
 }

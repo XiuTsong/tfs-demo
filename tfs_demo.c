@@ -1,5 +1,6 @@
 #include "easy_block.h"
 #include "easy_defs.h"
+#include "easy_disk.h"
 #include "easy_file.h"
 #include "tfs_demo.h"
 #include <stdio.h>
@@ -14,16 +15,30 @@ char global_read_buf[MAX_LEN];
 int init_file_system(void)
 {
 	int ret;
-	ret = init_block_layer(global_memory_pool, TOTAL_BYTES);
+	bool is_init;
+
+	ret = init_disk_layer(&global_memory_pool, &is_init);
+	if (ret != EASY_SUCCESS) {
+		printf("init disk layer failed\n");
+		return -EASY_DISK_INIT_FAILED;
+	}
+
+	ret = init_block_layer(global_memory_pool, TOTAL_BYTES, is_init);
 	if (ret != EASY_SUCCESS) {
 		printf("init block layer failed\n");
 		return -EASY_BLOCK_INIT_FAILED;
 	}
 
-	ret = init_file_layer();
+	ret = init_file_layer(is_init);
 	if (ret != EASY_SUCCESS) {
 		printf("init file layer failed\n");
 		return -EASY_FILE_INIT_FAILED;
+	}
+
+	/** For now, just flush block & file layer into disk */
+	ret = easy_flush_whole();
+	if (ret != EASY_SUCCESS) {
+		return -EASY_DISK_FLUSH_ERROR;
 	}
 
 	return ret;
@@ -189,6 +204,34 @@ static int ls_blk(__maybe_unused int argc, __maybe_unused const char args[][MAX_
 	return easy_ls_blocks(read_buf);
 }
 
+static int print_help(__maybe_unused int argc, __maybe_unused const char args[][MAX_LEN], __maybe_unused char *read_buf)
+{
+	printf("quit/q\n");
+	printf("create/touch [-t] filename\n");
+	printf("remove/rm filename\n");
+	printf("mkdir dirname\n");
+	printf("ls\n");
+	printf("cd dirname\n");
+	printf("pwd\n");
+	printf("cat filename\n");
+	printf("echo \"content\" filename\n");
+	printf("lsblk\n");
+	printf("open filename\n");
+	printf("write \"content\" filename\n");
+	printf("read filename\n");
+	return 0;
+}
+
+static int flush()
+{
+	return easy_flush_whole();
+}
+
+static int load()
+{
+	return easy_load_whole();
+}
+
 const struct easy_fs_op fs_ops[] = {
 	{"quit", quit},
 	{"q", quit},
@@ -206,12 +249,12 @@ const struct easy_fs_op fs_ops[] = {
 	{"open", open},
 	{"write", write},
 	{"read", read},
+	{"help", print_help},
 };
 
 static int start_tfs()
 {
 	int ret;
-	global_memory_pool = malloc(sizeof(char) * TOTAL_BYTES);
 	ret = init_file_system();
 	if (ret) {
 		return ret;
@@ -230,9 +273,14 @@ static int end_tfs(int exit_code)
 static int forward_fs_ops(int argc, const char args[][MAX_LEN], char *buf)
 {
 	size_t i;
+	int ret;
 	for (i = 0; i < sizeof(fs_ops) / sizeof(fs_ops[0]); i++) {
 		if (!strcmp(args[0], fs_ops[i].cmd_name)) {
-			return fs_ops[i].op(argc, args, buf);
+			/* For now, load() before, and flush() after every operation */
+			load();
+			ret = fs_ops[i].op(argc, args, buf);
+			flush();
+			return ret;
 		}
 	}
 	printf("command \"%s\" not found\n", args[0]);
