@@ -351,6 +351,12 @@ static easy_status easy_dir_ls_internal(easy_dir_t *dir, void *buf)
 	buf_ptr = buf;
 	for (i = 0; i < dir->file_num; ++i) {
 		file = file_pool_get_file_by_id(dir->file_ids[i]);
+#ifdef __TFS_REMOTE
+		/** At tfs_remote, do not show local files */
+		if (!is_file_trans(file))
+			continue;
+#else
+#endif
 		add_file_name_to_buf(file, &buf_ptr);
 	}
 
@@ -658,6 +664,28 @@ static bool is_file_overwritten(easy_file_t *file)
 	return false;
 }
 
+static inline void mark_file_blocks_open(easy_file_t *file)
+{
+	easy_block_t *block;
+
+	for_each_block_id_in_file(block_id, file)
+	{
+		block = get_block(block_id);
+		block->is_opened = true;
+	}
+}
+
+static inline void mark_file_blocks_close(easy_file_t *file)
+{
+	easy_block_t *block;
+
+	for_each_block_id_in_file(block_id, file)
+	{
+		block = get_block(block_id);
+		block->is_opened = false;
+	}
+}
+
 /*
  * Open file before read and write.
  * Check overwritten blocks here.
@@ -676,12 +704,15 @@ easy_status easy_open_file(const char *file_name, easy_file_t **open_file)
 		return EASY_FILE_OVERWRITTEN_ERROR;
 	}
 
-	if (is_file_trans(file) && is_file_overwritten(file)) {
-		file->state = EASY_FILE_OVER;
-		printf("file %s is overwritten\n", file_name);
-		/* TODO: delete file, clean file blocks here */
-		easy_clean_trans_file(file);
-		return EASY_FILE_OVERWRITTEN_ERROR;
+	if (is_file_trans(file)) {
+		if (is_file_overwritten(file)) {
+			file->state = EASY_FILE_OVER;
+			printf("file %s is overwritten\n", file_name);
+			easy_clean_trans_file(file);
+			return EASY_FILE_OVERWRITTEN_ERROR;
+		}
+		/* Concession: mark all blocks "open" to prevent being overwritten */
+		mark_file_blocks_open(file);
 	}
 
 	file->state = EASY_FILE_OPEN;
@@ -698,6 +729,8 @@ easy_status easy_open_file(const char *file_name, easy_file_t **open_file)
 easy_status easy_close_file(easy_file_t *file)
 {
 	file->state = EASY_FILE_CLOSE;
+	if (is_file_trans(file))
+		mark_file_blocks_close(file);
 
 	return EASY_SUCCESS;
 }
@@ -945,6 +978,29 @@ easy_status easy_open(const char *file_name)
 	easy_file_t *file;
 
 	status = easy_open_file(file_name, &file);
+	if (status != EASY_SUCCESS) {
+		return status;
+	}
+
+	return EASY_SUCCESS;
+}
+
+easy_status easy_close(const char *file_name)
+{
+	easy_status status;
+	easy_file_t *file;
+
+	file = easy_dir_get_file(get_cur_dir(), file_name);
+	if (!file) {
+		printf("file %s not found\n", file_name);
+		return EASY_FILE_NOT_FOUND_ERROR;
+	}
+	if (file->state == EASY_FILE_OVER) {
+		printf("file %s is overwritten\n", file_name);
+		return EASY_FILE_OVERWRITTEN_ERROR;
+	}
+
+	status = easy_close_file(file);
 	if (status != EASY_SUCCESS) {
 		return status;
 	}

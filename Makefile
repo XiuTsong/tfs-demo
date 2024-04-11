@@ -1,21 +1,30 @@
 CC = gcc
 CFLAGS = -g -Wall -Wextra
-# for demo use
-# CFLAGS += -D __DEMO_USE
 
-TARGET = main
+# Define the source files for each target
 SRCS := $(wildcard *.c)
+
+# Define the object files for each target
 OBJS := $(SRCS:.c=.o)
+LOCAL_OBJS := $(addprefix local_, $(OBJS))
+REMOTE_OBJS := $(addprefix remote_, $(OBJS))
 
-.PHONY: all clean
+.PHONY: all clean tfs_local tfs_remote
 
-all: $(TARGET)
+all: tfs_local tfs_remote
 
-$(TARGET): $(OBJS)
+tfs_local: $(LOCAL_OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
 
-%.o: %.c
+tfs_remote: CFLAGS += -D__TFS_REMOTE
+tfs_remote: $(REMOTE_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@
+
+local_%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
+remote_%.o: %.c
+	$(CC) $(CFLAGS) -D__TFS_REMOTE -c $< -o $@
+
 clean:
-	rm -f $(TARGET) $(OBJS)
+	rm -f tfs_local tfs_remote $(LOCAL_OBJS) $(REMOTE_OBJS)

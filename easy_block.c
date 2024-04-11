@@ -13,6 +13,12 @@ static inline bool is_block_writeable(const uint32_t block_id, bool is_trans)
 {
 	easy_block_t *block = get_block(block_id);
 	bool flag = false;
+
+	/* Opened transparent file blocks can not be overwritten */
+	if (block->is_opened) {
+		return false;
+	}
+
 	if (!is_trans) {
 		/* Normal write can overwrite transparent or free-and-overwritten block */
 		flag |= block->state == BLOCK_TRANS;

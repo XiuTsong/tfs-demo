@@ -114,7 +114,8 @@ static int ls(int argc, __maybe_unused const char args[][MAX_LEN], char *read_bu
 	else
 		/* ls dir */
 	 	ret = easy_dir_list_files(args[1], read_buf);
-	printf("%s\n", read_buf);
+	if (strlen(read_buf))
+		printf("%s\n", read_buf);
 	return ret;
 }
 
@@ -161,7 +162,7 @@ static int read(__maybe_unused int argc, const char args[][MAX_LEN], char *read_
 	return ret;
 }
 
-static int open(__maybe_unused int argc, const char args[][MAX_LEN], __maybe_unused char *read_buf)
+static int open(int argc, const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
 	int ret;
 	if (argc <= 1) {
@@ -169,6 +170,17 @@ static int open(__maybe_unused int argc, const char args[][MAX_LEN], __maybe_unu
 		return 0;
 	}
 	ret = easy_open(args[1]);
+	return ret;
+}
+
+static int close(int argc, const char args[][MAX_LEN], __maybe_unused char *read_buf)
+{
+	int ret;
+	if (argc <= 1) {
+		printf("usage: open filename\n");
+		return 0;
+	}
+	ret = easy_close(args[1]);
 	return ret;
 }
 
@@ -198,7 +210,12 @@ static int quit(__maybe_unused int argc, __maybe_unused const char args[][MAX_LE
 
 static int ls_blk(__maybe_unused int argc, __maybe_unused const char args[][MAX_LEN], __maybe_unused char *read_buf)
 {
+#ifdef __TFS_REMOTE
+	printf("\"ls_blk\" is not supported at tfs-remote\n");
+	return 0;
+#else
 	return easy_ls_blocks(read_buf);
+#endif
 }
 
 static int print_help(__maybe_unused int argc, __maybe_unused const char args[][MAX_LEN], __maybe_unused char *read_buf)
@@ -214,6 +231,7 @@ static int print_help(__maybe_unused int argc, __maybe_unused const char args[][
 	printf("echo \"content\" filename\n");
 	printf("lsblk\n");
 	printf("open filename\n");
+	printf("close filename\n");
 	printf("write \"content\" filename\n");
 	printf("read filename\n");
 	return 0;
@@ -244,26 +262,27 @@ const struct easy_fs_op fs_ops[] = {
 	{"echo", echo},
 	{"lsblk", ls_blk},
 	{"open", open},
+	{"close", close},
 	{"write", write},
 	{"read", read},
 	{"help", print_help},
 };
 
-static int start_tfs()
+int start_tfs()
 {
 	int ret;
 	ret = init_file_system();
 	if (ret) {
 		return ret;
 	}
-	printf("welcome to tfs-demo!\n");
+	printf("welcome to tfs!\n");
 	return ret;
 }
 
-static int end_tfs(int exit_code)
+static int end_tfs(__maybe_unused int exit_code)
 {
 	free(global_memory_pool);
-	printf("[%d] tfs-demo finish!\n", exit_code);
+	// printf("[%d] tfs-demo finish!\n", exit_code);
 	return 0;
 }
 
@@ -316,7 +335,11 @@ int tfs_main_work()
 	while (ret >= 0) {
 		int argc;
 
-		printf("tfs-demo > ");
+#ifdef __TFS_REMOTE
+		printf("tfs-remote > ");
+#else
+		printf("tfs-local > ");
+#endif
 
 		if (fgets(global_str, sizeof(global_str), stdin) == NULL) {
 			break;

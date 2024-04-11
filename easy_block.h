@@ -38,6 +38,9 @@ typedef struct {
 	/* metadata: at most 24 Bytes */
 	block_state state;
 
+	/* When open a transparent file, set this flag */
+	bool is_opened;
+
 	/* data: 1000 Bytes */
 	char block_data[BLOCK_DATA_SIZE];
 } easy_block_t;

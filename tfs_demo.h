@@ -9,4 +9,8 @@ struct easy_fs_op {
     int (*op)(int argc, const char args[][MAX_LEN], char *read_buf);
 };
 
+int start_tfs();
+
+int tfs_main_work();
+
 #endif
