@@ -35,13 +35,11 @@ typedef struct easy_file easy_file_t;
 
 struct easy_dir {
 	uint32_t file_ids[MAX_FILE_NUM];
-	easy_file_t *self_file; // Point to EASY_FILE struct that contains itself
+	uint32_t self_file_id;
 	uint32_t file_num;
 } __align(8); // sizeof(struct easy_dir) = 56
 
 typedef struct easy_dir easy_dir_t;
-
-easy_status easy_create_dir(const char *dir_name);
 
 easy_status easy_create_file(const char *file_name);
 
@@ -54,6 +52,8 @@ easy_status easy_create_trans_file(const char *file_name);
 easy_status easy_remove_trans_file(const char *file_name);
 
 easy_status init_file_layer(bool is_init);
+
+easy_status easy_mkdir(const char *dir_name);
 
 easy_status easy_pwd(void *read_buf);
 

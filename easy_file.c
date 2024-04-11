@@ -32,6 +32,8 @@ static easy_status easy_dir_remove_file(easy_dir_t *dir, uint32_t file_id);
 #define is_file_trans(file) ((file)->type == EASY_TYPE_FILE_TRANS || (file)->type == EASY_TYPE_DIR_TRANS)
 #define is_dir(file) ((file)->type == EASY_TYPE_DIR || (file)->type == EASY_TYPE_DIR_TRANS)
 
+#define get_file_struct_by_id(file_id) (&global_file_pool[(file_id)])
+
 static uint32_t get_file_name_len(const char *file_name)
 {
 	return strlen(file_name);
@@ -76,9 +78,9 @@ static easy_dir_t *easy_file_to_easy_dir(easy_file_t *file)
 	return (easy_dir_t *)get_block_data(file->block_ids[0]);
 }
 
-static easy_file_t *easy_dir_to_easy_file(easy_dir_t *Dir)
+static easy_file_t *easy_dir_to_easy_file(easy_dir_t *dir)
 {
-	return Dir->self_file;
+	return get_file_struct_by_id(dir->self_file_id);
 }
 
 static inline bool is_special_dir(easy_file_t *file)
@@ -89,8 +91,6 @@ static inline bool is_special_dir(easy_file_t *file)
 /************************************************************
  *        File Pool Related
  ************************************************************/
-
-#define file_pool_get_file_by_id(file_id) (&global_file_pool[(file_id)])
 
 static easy_file_t *file_pool_get_file(const char *file_name)
 {
@@ -190,7 +190,7 @@ static easy_dir_t *get_praent_dir(easy_dir_t *Dir)
 {
 	easy_dir_t *dot_dot_dir;
 	dot_dot_dir = get_easy_dir_by_name("..", Dir);
-	return easy_file_to_easy_dir(file_pool_get_file_by_id(dot_dot_dir->file_ids[0]));
+	return easy_file_to_easy_dir(get_file_struct_by_id(dot_dot_dir->file_ids[0]));
 }
 
 bool easy_dir_check_file_exist(easy_dir_t *dir, const char *file_name)
@@ -220,7 +220,7 @@ static easy_dir_t *create_dir_internal(const char *file_name)
 	}
 
 	new_dir = easy_file_to_easy_dir(new_dir_file);
-	new_dir->self_file = new_dir_file;
+	new_dir->self_file_id = new_dir_file->id;
 	new_dir->file_num = 0;
 
 	return new_dir;
@@ -277,7 +277,7 @@ easy_dir_t *create_dir(const char *file_name, bool is_root, easy_dir_t *cur_dir)
 	}
 
 	if (!is_root && cur_dir) {
-		status = easy_dir_add_file(cur_dir, new_dir->self_file->id);
+		status = easy_dir_add_file(cur_dir, new_dir->self_file_id);
 		if (status != EASY_SUCCESS) {
 			return NULL;
 		}
@@ -304,7 +304,7 @@ easy_status easy_create_root_dir(void)
 	return EASY_SUCCESS;
 }
 
-easy_status easy_create_dir(const char *dir_name)
+easy_status easy_mkdir(const char *dir_name)
 {
 	easy_dir_t *cur_dir = get_cur_dir();
 	easy_dir_t *new_dir;
@@ -356,7 +356,7 @@ static easy_status easy_dir_ls_internal(easy_dir_t *dir, void *buf, int option)
 
 	buf_ptr = buf;
 	for (i = 0; i < dir->file_num; ++i) {
-		file = file_pool_get_file_by_id(dir->file_ids[i]);
+		file = get_file_struct_by_id(dir->file_ids[i]);
 		if (is_special_dir(file) && option != 1)
 			continue;
 #ifdef __TFS_REMOTE

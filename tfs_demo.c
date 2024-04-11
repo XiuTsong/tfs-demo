@@ -106,7 +106,7 @@ static int create_dir(__maybe_unused int argc, const char args[][MAX_LEN], __may
 		printf("usage: mkdir dirname\n");
 		return 0;
 	}
-	return easy_create_dir(args[1]);
+	return easy_mkdir(args[1]);
 }
 
 static int ls(int argc, __maybe_unused const char args[][MAX_LEN], char *read_buf)
