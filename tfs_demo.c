@@ -239,9 +239,9 @@ static int print_help(__maybe_unused int argc, __maybe_unused const char args[][
 {
 	printf("quit/q\n");
 	printf("create/touch [-t] filename\n");
-	printf("remove/rm [-f/-r] filename/dirname\n");
+	printf("remove/rm [-f/-r] name\n");
 	printf("mkdir dirname\n");
-	printf("ls\n");
+	printf("ls [-a] name\n");
 	printf("cd dirname\n");
 	printf("pwd\n");
 	printf("cat filename\n");
