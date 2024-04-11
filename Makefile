@@ -28,3 +28,6 @@ remote_%.o: %.c
 
 clean:
 	rm -f tfs_local tfs_remote $(LOCAL_OBJS) $(REMOTE_OBJS)
+
+init:
+	rm -f tfs_disk
