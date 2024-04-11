@@ -81,6 +81,11 @@ static easy_file_t *easy_dir_to_easy_file(easy_dir_t *Dir)
 	return Dir->self_file;
 }
 
+static inline bool is_special_dir(easy_file_t *file)
+{
+	return compare_file_name(file->name, ".") || compare_file_name(file->name, "..");
+}
+
 /************************************************************
  *        File Pool Related
  ************************************************************/
@@ -342,7 +347,8 @@ static void add_file_name_to_buf(easy_file_t *file, char **buf_ptr)
 	*buf_ptr = ptr;
 }
 
-static easy_status easy_dir_ls_internal(easy_dir_t *dir, void *buf)
+/** option: 1 -> ls -a */
+static easy_status easy_dir_ls_internal(easy_dir_t *dir, void *buf, int option)
 {
 	easy_file_t *file;
 	char *buf_ptr;
@@ -351,6 +357,8 @@ static easy_status easy_dir_ls_internal(easy_dir_t *dir, void *buf)
 	buf_ptr = buf;
 	for (i = 0; i < dir->file_num; ++i) {
 		file = file_pool_get_file_by_id(dir->file_ids[i]);
+		if (is_special_dir(file) && option != 1)
+			continue;
 #ifdef __TFS_REMOTE
 		/** At tfs_remote, do not show local files */
 		if (!is_file_trans(file))
@@ -363,7 +371,7 @@ static easy_status easy_dir_ls_internal(easy_dir_t *dir, void *buf)
 	return EASY_SUCCESS;
 }
 
-easy_status easy_dir_list_files(const char *dir_name, void *buf)
+easy_status easy_dir_list_files(const char *dir_name, void *buf, int option)
 {
 	easy_dir_t *dir;
 	easy_dir_t *cur_dir = get_cur_dir();
@@ -376,7 +384,7 @@ easy_status easy_dir_list_files(const char *dir_name, void *buf)
 		dir = get_easy_dir_by_name(dir_name, cur_dir);
 	}
 
-	return easy_dir_ls_internal(dir, buf);
+	return easy_dir_ls_internal(dir, buf, option);
 }
 
 static easy_file_t *easy_dir_get_file(easy_dir_t *dir, const char *file_name)
@@ -474,11 +482,6 @@ static void clean_file_metadata(easy_file_t *file)
 }
 
 static easy_status easy_remove_dir_internal(easy_dir_t *delete_dir, easy_dir_t *parent_dir);
-
-static inline bool is_special_dir(easy_file_t *file)
-{
-	return compare_file_name(file->name, ".") || compare_file_name(file->name, "..");
-}
 
 static easy_status easy_remove_file_internal(easy_file_t *delete_file, easy_dir_t *parent_dir)
 {
@@ -946,11 +949,11 @@ easy_status easy_cat(const char *file_name, void *buf)
 	return EASY_SUCCESS;
 }
 
-easy_status easy_ls(void *buf)
+easy_status easy_ls(void *buf, int option)
 {
 	easy_dir_t *cur_dir = get_cur_dir();
 
-	return easy_dir_ls_internal(cur_dir, buf);
+	return easy_dir_ls_internal(cur_dir, buf, option);
 }
 
 easy_status easy_echo(const char *file_name, const void *write_buf)

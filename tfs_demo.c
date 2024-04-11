@@ -112,12 +112,25 @@ static int create_dir(__maybe_unused int argc, const char args[][MAX_LEN], __may
 static int ls(int argc, __maybe_unused const char args[][MAX_LEN], char *read_buf)
 {
 	int ret;
+
 	if (argc < 2)
 	 	/* only ls */
-		ret = easy_ls(read_buf);
-	else
-		/* ls dir */
-	 	ret = easy_dir_list_files(args[1], read_buf);
+		ret = easy_ls(read_buf, 0);
+	else if (argc == 2) {
+		if (strcmp(args[1], "-a")) {
+			/* ls dir */
+			ret = easy_dir_list_files(args[1], read_buf, 0);
+		} else {
+			/* ls -a */
+			ret = easy_ls(read_buf, 1);
+		}
+	} else if (argc == 3 && !strcmp(args[1], "-a")) {
+		/* ls -a dir */
+		ret = easy_dir_list_files(args[2], read_buf, 1);
+	} else {
+		printf("usage: ls [-a] [dirname]\n");
+		return 0;
+	}
 	if (strlen(read_buf))
 		printf("%s\n", read_buf);
 	return ret;
