@@ -558,6 +558,12 @@ easy_status easy_remove_file(const char *file_name)
 		printf("file \"%s\" not exists\n", file_name);
 		return EASY_FILE_NOT_FOUND_ERROR;
 	}
+#ifdef __TFS_REMOTE
+	if (!is_file_trans(delete_file)) {
+		printf("Cannot remove file \"%s\"\n", file_name);
+		return EASY_FILE_NOT_SUPPORT;
+	}
+#endif
 
 	if (is_dir(delete_file) && !is_special_dir(delete_file)) {
 		return easy_remove_dir_internal(easy_file_to_easy_dir(delete_file), cur_dir);
@@ -714,6 +720,13 @@ easy_status easy_open_file(const char *file_name, easy_file_t **open_file)
 		/* Concession: mark all blocks "open" to prevent being overwritten */
 		mark_file_blocks_open(file);
 	}
+#ifdef __TFS_REMOTE
+	else {
+		/* tfs-remote cannot open normal files */
+		printf("Cannot access file \"%s\"\n", file_name);
+		return EASY_FILE_NOT_SUPPORT;
+	}
+#endif
 
 	file->state = EASY_FILE_OPEN;
 	*open_file = file;
