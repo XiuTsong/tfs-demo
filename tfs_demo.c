@@ -68,7 +68,11 @@ static int create_file(__maybe_unused int argc, const char args[][MAX_LEN], __ma
 	if (ret == 1) {
 		return easy_create_trans_file(args[2]);
 	} else if (ret == 2) {
+#ifdef __TFS_REMOTE
+		return easy_create_trans_file(args[1]);
+#else
 		return easy_create_file(args[1]);
+#endif
 	}
 	printf("unknown option \"%s\"\n", args[1]);
 	return 0;
