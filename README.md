@@ -8,48 +8,80 @@ https://ipads.se.sjtu.edu.cn/courses/ads/paper/ads-tfs.pdf
 ### Setup
 
 ```
-make all
+make clean && make all
 ```
 
-### Example
+You can use `make init` to initialize TFS.
+
+### Usage
 
 Normal file operations:
 
 ```
-$ ./main
-welcome to tfs-demo!
-tfs-demo > ls
+welcome to tfs!
+tfs-local > help
+quit/q
+create/touch [-t] filename
+remove/rm [-f/-r] filename/dirname
+mkdir dirname
+ls
+cd dirname
+pwd
+cat filename
+echo "content" filename
+lsblk
+open filename
+close filename
+write "content" filename
+read filename
+```
+
+Example:
+
+```
+❯ ./tfs_local 
+welcome to tfs!
+tfs-local > ls
 . .. 
-tfs-demo > touch a.txt
-tfs-demo > mkdir dir
-tfs-demo > ls
+tfs-local > touch a.txt
+tfs-local > mkdir dir
+tfs-local > ls
 . .. a.txt dir 
-tfs-demo > echo 123 a.txt
-tfs-demo > ls
-. .. a.txt dir 
-tfs-demo > cat a.txt
+tfs-local > echo 123 a.txt
+tfs-local > cat a.txt
 123
-tfs-demo > cd dir
-tfs-demo > ls
+tfs-local > cd dir
+tfs-local > ls
 . .. 
-tfs-demo > touch b.txt
-tfs-demo > ls
+tfs-local > touch b.txt
+tfs-local > ls
 . .. b.txt 
-tfs-demo > cd ..
-tfs-demo > ls
+tfs-local > cd ..
+tfs-local > ls
 . .. a.txt dir 
-tfs-demo > q 
-[1] tfs-demo finish!
+tfs-local > q
 ```
 
-TFS related:
+**TFS related**:
 
 ```
-$ ./main
-welcome to tfs-demo!
-tfs-demo > touch -t a.txt  // use "-t" option to create a transparent file
-tfs-demo > echo 1234 a.txt // write some content to transparent file
-tfs-demo > lsblk           // use "lsblk" to show current data blocks (16 blocks on default)
+❯ ./tfs_local
+welcome to tfs!
+tfs-local > touch -t a.txt
+tfs-local > echo 1234 a.txt
+tfs-local > lsblk
+
+❯ ./tfs_remote
+welcome to tfs!
+tfs-remote > ls
+a.txt 
+tfs-remote > cat a.txt
+1234
+tfs-remote > 
 ```
 
-You can create and write both normal files and transparent files at the same time, and use `lsblk` to show the block state transition.
+You can create and write both normal files and transparent files at the same time, and use `lsblk` to show the block state transition. 
+
+Note that in tfs_remote, both `touch and `touch -t` create transparent files. 
+
+If tfs_remote is opening a file(of course it's a transparent file) use `open` operation, tfs_local can not overwritten its block unless it was closed by tfs_remote.
