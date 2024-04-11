@@ -371,7 +371,7 @@ static easy_status easy_dir_ls_internal(easy_dir_t *dir, void *buf, int option)
 	return EASY_SUCCESS;
 }
 
-easy_status easy_dir_list_files(const char *dir_name, void *buf, int option)
+easy_status easy_ls_dir(const char *dir_name, void *buf, int option)
 {
 	easy_dir_t *dir;
 	easy_dir_t *cur_dir = get_cur_dir();
@@ -382,6 +382,11 @@ easy_status easy_dir_list_files(const char *dir_name, void *buf, int option)
 		dir = get_praent_dir(cur_dir);
 	} else {
 		dir = get_easy_dir_by_name(dir_name, cur_dir);
+	}
+
+	if (!dir) {
+		printf("directory \"%s\" not found\n", dir_name);
+		return EASY_DIR_NOT_FOUND_ERROR;
 	}
 
 	return easy_dir_ls_internal(dir, buf, option);

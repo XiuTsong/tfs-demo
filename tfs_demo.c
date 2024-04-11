@@ -1,8 +1,8 @@
+#include "tfs_demo.h"
 #include "easy_block.h"
 #include "easy_defs.h"
 #include "easy_disk.h"
 #include "easy_file.h"
-#include "tfs_demo.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -114,19 +114,19 @@ static int ls(int argc, __maybe_unused const char args[][MAX_LEN], char *read_bu
 	int ret;
 
 	if (argc < 2)
-	 	/* only ls */
+		/* only ls */
 		ret = easy_ls(read_buf, 0);
 	else if (argc == 2) {
 		if (strcmp(args[1], "-a")) {
 			/* ls dir */
-			ret = easy_dir_list_files(args[1], read_buf, 0);
+			ret = easy_ls_dir(args[1], read_buf, 0);
 		} else {
 			/* ls -a */
 			ret = easy_ls(read_buf, 1);
 		}
 	} else if (argc == 3 && !strcmp(args[1], "-a")) {
 		/* ls -a dir */
-		ret = easy_dir_list_files(args[2], read_buf, 1);
+		ret = easy_ls_dir(args[2], read_buf, 1);
 	} else {
 		printf("usage: ls [-a] [dirname]\n");
 		return 0;
