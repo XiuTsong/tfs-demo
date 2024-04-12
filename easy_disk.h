@@ -5,7 +5,7 @@
 
 typedef struct easy_disk_system {
 	void *memory_pool;
-    uint32_t total_bytes;
+	uint32_t total_bytes;
 	struct block_metadata {
 		uint32_t start;
 		uint32_t num;
