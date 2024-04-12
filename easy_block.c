@@ -1,8 +1,8 @@
 #include "easy_block.h"
 #include "easy_defs.h"
 #include "print_block.h"
-#include <stdio.h>
 #include <string.h>
+// #include <stdio.h>
 
 easy_block_system_t *global_block_system;
 uint32_t global_block_num;
