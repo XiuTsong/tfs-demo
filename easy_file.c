@@ -487,6 +487,7 @@ static void clean_file_metadata(easy_file_t *file)
 }
 
 static easy_status easy_remove_dir_internal(easy_dir_t *delete_dir, easy_dir_t *parent_dir);
+static inline void mark_file_blocks_close(easy_file_t *file);
 
 static easy_status easy_remove_file_internal(easy_file_t *delete_file, easy_dir_t *parent_dir)
 {
@@ -495,6 +496,8 @@ static easy_status easy_remove_file_internal(easy_file_t *delete_file, easy_dir_
 	if (is_dir(delete_file) && !is_special_dir(delete_file)) {
 		return easy_remove_dir_internal(easy_file_to_easy_dir(delete_file), parent_dir);
 	}
+
+	mark_file_blocks_close(delete_file);
 
 	/** For "." and "..", treat as nornal file */
 	for_each_block_id_in_file(block_id, delete_file)
@@ -547,7 +550,7 @@ static easy_status easy_remove_dir_internal(easy_dir_t *delete_dir, easy_dir_t *
 		}
 	}
 
-	/** Before removing dir inself, change it to file type to avoid nested remove-loop */
+	/** Before removing dir itself, change it to file type to avoid nested remove-loop */
 	change_dir_to_file(delete_dir);
 	easy_remove_file_internal(delete_dir_file, parent_dir);
 
@@ -722,6 +725,8 @@ easy_status easy_open_file(const char *file_name, easy_file_t **open_file)
 		if (is_file_overwritten(file)) {
 			file->state = EASY_FILE_OVER;
 			printf("file %s is overwritten\n", file_name);
+			/** Before clean trans file, mark blocks close */
+			mark_file_blocks_close(file);
 			easy_clean_trans_file(file);
 			return EASY_FILE_OVERWRITTEN_ERROR;
 		}
@@ -804,7 +809,7 @@ static easy_status easy_write_file(easy_file_t *file, uint32_t nbyte, const void
 }
 #else
 /**
- * For demo use, each character use one block.
+ * For demo use, each character consumes one block.
  * Only support write append now
  */
 static easy_status easy_demo_write_file(easy_file_t *file, uint32_t nbyte, const void *buf)

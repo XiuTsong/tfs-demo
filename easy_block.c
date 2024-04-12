@@ -190,8 +190,12 @@ easy_status free_block_trans(uint32_t block_id)
 easy_status clean_block(uint32_t block_id)
 {
 	easy_status status = EASY_SUCCESS;
-	/* Do not clear bitmap here */
+	easy_block_t *block;
 	status = block_state_transition(block_id, CLEAN);
+	block = get_block(block_id);
+	if (block->state == BLOCK_FREE) {
+		global_block_system->bitmap[block_id] = 0;
+	}
 
 	return status;
 }
